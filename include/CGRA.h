@@ -32,5 +32,9 @@ class CGRA {
 		int getLinkCount(){return m_LinkCount;}
 		int getrows(){return m_rows;}
 		int getcolumns(){return m_columns;}
+		
+		CGRALink* getEdgefrom(CGRANode* t_src,CGRANode* t_dst);
+
+		
 };
 #endif

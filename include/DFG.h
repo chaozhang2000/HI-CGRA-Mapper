@@ -71,7 +71,6 @@ class DFG {
 
 		DFGEdge* getEdgefrom(DFGNodeInst* t_src,DFGNodeInst* t_dst);
 
-
   public:
 		/**The value to record if error when construct DFG
 		 */
@@ -106,5 +105,6 @@ class DFG {
 		void generateDot(Function &t_F, bool t_isTrimmedDemo);
 
 		int getInstNodeCount();
+    list<DFGNodeInst*>* getInstNodes(){return &m_InstNodes;}
 };
 #endif

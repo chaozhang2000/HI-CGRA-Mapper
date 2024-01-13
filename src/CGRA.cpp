@@ -1,5 +1,6 @@
 #include "CGRA.h"
 #include "common.h"
+#include "cassert"
 
 using namespace llvm;
 using namespace std;
@@ -89,6 +90,15 @@ CGRA::CGRA(int t_rows,int t_columns){
 		outs()<<"Link"<<links[i]->getID()<<":from Node"<<links[i]->getsrc()->getID()<<"->Node"<<links[i]->getdst()->getID()<<"\n";
 	}
 #endif
+}
+
+CGRALink* CGRA::getEdgefrom(CGRANode* t_src,CGRANode* t_dst){
+	for(int i = 0;i<m_LinkCount;i++){
+		if(links[i]->getsrc()== t_src and links[i]->getdst() == t_dst)
+			return links[i];
+	}
+	assert("ERROR cannot find the CGRALink from srcCGRANode to dstCGRANode");
+	return NULL;
 }
 
 CGRA::~CGRA(){

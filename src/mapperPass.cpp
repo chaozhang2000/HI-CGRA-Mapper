@@ -71,9 +71,11 @@ namespace {
 
 			CGRA* cgra = new CGRA(4,4);
 
-			MRRG* mrrg = new MRRG(cgra,1);
+			MRRG* mrrg = new MRRG(cgra,200);
 
 			Mapper* mapper = new Mapper(dfg,cgra,mrrg);
+
+			mapper->heuristicMap();
 
 			mrrg->MRRGclear();
 
