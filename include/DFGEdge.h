@@ -21,7 +21,6 @@ class DFGEdge
 		string m_color;
 
   public:
-
 		/**The constructor function of class DFGEdge
 		 * assign value to m_id,m_src and m_dst to create a Edge from src DFGNode to dst DFGNode
 		 * @param t_id the id of the DFGEdge created
@@ -29,12 +28,30 @@ class DFGEdge
 		 * @param t_dst pointer to the dst DFGNode
 		 */
     DFGEdge(int t_id, DFGNode* t_src, DFGNode* t_dst);
+
+		/**return m_id
+		 */
     int getID();
+
+		/**return m_src
+		 */
     DFGNode* getSrc();
+
+		/**return m_dst
+		 */
     DFGNode* getDst();
-    void connect(DFGNode*, DFGNode*);
-		void setcolor(string t_color);
+
+		/**return m_color
+		 */
 		string getcolor();
+		
+		/**connect DFGNode t_src to DFGNode* using this DFGEdge
+		 */
+    void connect(DFGNode*t_src, DFGNode*t_dst);
+
+		/**set the DFGEdge color in DFG
+		 */
+		void setcolor(string t_color);
 };
 
 #endif

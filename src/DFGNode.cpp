@@ -1,10 +1,3 @@
-/**
- * @file DFGNode.cpp
- * @author Cheng Tan 
- * @brief  the implementation of DFGNode class
- * @version 0.1
- */
-
 #include "DFGNode.h"
 #include "common.h"
 DFGNode::DFGNode(int t_id, string t_name){
@@ -28,4 +21,12 @@ void DFGNode::setOutEdge(DFGEdge* t_dfgEdge) {
   if (find(m_outEdges.begin(), m_outEdges.end(), t_dfgEdge) ==
       m_outEdges.end())
     m_outEdges.push_back(t_dfgEdge);
+}
+
+list<DFGEdge*>* DFGNode::getInEdges(){
+	return &m_inEdges;
+}
+
+list<DFGEdge*>* DFGNode::getOutEdges(){
+	return &m_outEdges;
 }

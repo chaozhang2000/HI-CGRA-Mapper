@@ -78,3 +78,9 @@ config DFG_LONGEST
 	bool "Show the longest path in DFG "
 	default y
 endmenu
+
+menu "MAP config"
+config MAP_EN
+  bool "Enable MAP"
+  default y
+endmenu

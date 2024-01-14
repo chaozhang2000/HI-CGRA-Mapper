@@ -51,6 +51,14 @@ void DFGNodeInst::setLevel(int t_level){
 	m_haveSetLevel = true;
 }
 
+int DFGNodeInst::getLevel(){
+	return m_level;
+}
+
+bool DFGNodeInst::haveSetLevel(){
+	return m_haveSetLevel;
+}
+
 DFGNodeInst::~DFGNodeInst(){
 	if(m_succInstNodes!=NULL){
 		delete m_succInstNodes;

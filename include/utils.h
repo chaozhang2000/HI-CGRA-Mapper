@@ -1,18 +1,3 @@
-/***************************************************************************************
-* Copyright (c) 2014-2022 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
-
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
@@ -42,5 +27,35 @@
 
 #define ERRS(coutfmt,color) errs()<<color<<coutfmt<<ANSI_NONE<<"\n"
 #define OUTS(coutfmt,color) outs()<<color<<coutfmt<<ANSI_NONE<<"\n"
+
+// ----------- IFDEF -----------
+#define concat(x, y) x ## y
+
+#define CHOOSE2nd(a, b, ...) b
+#define MUX_WITH_COMMA(contain_comma, a, b) CHOOSE2nd(contain_comma a, b)
+#define MUX_MACRO_PROPERTY(p, macro, a, b) MUX_WITH_COMMA(concat(p, macro), a, b)
+// define placeholders for some property
+#define __P_DEF_0  X,
+#define __P_DEF_1  X,
+#define __P_ONE_1  X,
+#define __P_ZERO_0 X,
+// define some selection functions based on the properties of BOOLEAN macro
+#define MUXDEF(macro, X, Y)  MUX_MACRO_PROPERTY(__P_DEF_, macro, X, Y)
+#define MUXNDEF(macro, X, Y) MUX_MACRO_PROPERTY(__P_DEF_, macro, Y, X)
+#define MUXONE(macro, X, Y)  MUX_MACRO_PROPERTY(__P_ONE_, macro, X, Y)
+#define MUXZERO(macro, X, Y) MUX_MACRO_PROPERTY(__P_ZERO_,macro, X, Y)
+
+// simplification for conditional compilation
+#define __IGNORE(...)
+#define __KEEP(...) __VA_ARGS__
+
+// keep the code if a boolean macro is defined
+#define IFDEF(macro, ...) MUXDEF(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+// keep the code if a boolean macro is undefined
+#define IFNDEF(macro, ...) MUXNDEF(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+// keep the code if a boolean macro is defined to 1
+#define IFONE(macro, ...) MUXONE(macro, __KEEP, __IGNORE)(__VA_ARGS__)
+// keep the code if a boolean macro is defined to 0
+#define IFZERO(macro, ...) MUXZERO(macro, __KEEP, __IGNORE)(__VA_ARGS__)
 
 #endif

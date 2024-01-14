@@ -60,15 +60,12 @@ namespace {
 			if (dfg->DFG_error){
 				return false;
 			}
-#ifdef CONFIG_DFG_DEBUG 
-      // Show the count of different opcodes (IRs).
-      dfg->showOpcodeDistribution();
-#endif
 
       // Generate the DFG dot file.
 			bool isTrimmedDemo = true;
       dfg->generateDot(t_F, isTrimmedDemo);
 
+#ifdef CONFIG_MAP_EN
 			CGRA* cgra = new CGRA(4,4);
 
 			MRRG* mrrg = new MRRG(cgra,200);
@@ -77,12 +74,11 @@ namespace {
 
 			mapper->heuristicMap();
 
-			mrrg->MRRGclear();
-
 			delete mapper;
 			delete mrrg;
-			delete dfg;
 			delete cgra;
+#endif
+			delete dfg;
 			return true;
     }
 

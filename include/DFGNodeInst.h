@@ -24,6 +24,8 @@ class DFGNodeInst:public DFGNode{
 		 * the dfgnode with lower level execute first
 		 */
 		int m_level;
+		/**var to record if the DFGNodeInst have been set level
+		 */
 		bool m_haveSetLevel;
 	public:
 		static const string color;
@@ -34,18 +36,32 @@ class DFGNodeInst:public DFGNode{
 		DFGNodeInst(int t_id, Instruction* t_inst,string t_name);
 		~DFGNodeInst();
 
+		/**return m_inst
+		 */
     Instruction* getInst();
 
+		/**return m_opcodeName
+		 */
     string getOpcodeName();
 
-		string getColor();
-
+		/**function to get Succ InstNode of this InstNode
+		 * first call will new list<DFGNodeInst*> for m_succInstNodes
+		 * and find succ InstNodes and add them to m_succInstNodes
+		 * return m_succInstNodes
+		 */
 		list<DFGNodeInst*>* getSuccInstNodes();
 		list<DFGNodeInst*>* getPredInstNodes();
 
+		/**set m_level the value of t_level
+		 * set m_haveSetLevel true;
+		 */
 		void setLevel(int t_level);
 
-		int getLevel(){return m_level;};
-		bool haveSetLevel(){return m_haveSetLevel;}
+		/**return m_level
+		 */
+		int getLevel();
+		/**return m_haveSetLevel;
+		 */
+		bool haveSetLevel();
 };
 #endif

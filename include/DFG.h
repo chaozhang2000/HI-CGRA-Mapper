@@ -32,28 +32,11 @@ class DFG {
 		 */
     list<DFGNodeParam*> m_ParamNodes;
 
-		/** 
-		* this function is used to connect DFGNodes to generate DFG
-		*/
+    void construct(Function&);
+    void showOpcodeDistribution();
     void connectDFGNodes();
-
-
-		/**Get the pointer of DFGEdge from t_src to t_dst DFGNode.The DFGEdge must be confirmed to have been created.You can use hasDFGEdge() to check this.
-		 * @param t_src the pointer to the src DFGNode
-		 * @param t_dst the pointer to the dst DFGNode
-		 * @return DFGEdge* the pointer to DFGEdge we want to find.
-		 */
     DFGEdge* getDFGEdge(DFGNode* t_src, DFGNode* t_dst);
-
-		/**Check if the DFGEdge from t_src to t_dst DFGNode has be created
-		 * @param t_src the pointer to the src DFGNode
-		 * @param t_dst the pointer to the dst DFGNode
-		 * @return true main the DFGEdge from t_src to t_dst is in m_DFGEdges,has been created in the past
-		 */
     bool hasDFGEdge(DFGNode* t_src, DFGNode* t_dst);
-
-		/**reorder the InstNodes, give every Node a level,and reorder them according to the leavel.
-		 */
 		void reorderInstNodes();
 		void DFS_findlongest(list<DFGNodeInst*>* t_longestPath);
 		void reorderDFS(set<DFGNodeInst*>* t_visited, list<DFGNodeInst*>* t_targetPath,
@@ -61,14 +44,9 @@ class DFG {
 		int setLevelLongestPath(list<DFGNodeInst*>*longestPath,set<DFGNodeInst*>* havenotSetLevelNodes);
 		void setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes);
 		void changeLongestPathColor(list<DFGNodeInst*>* t_longestPath,string t_color);
-
-
     bool shouldIgnore(Instruction*);
-
     string changeIns2Str(Instruction* ins);
-
-    DFGNodeInst* getInstNode(Value*);
-
+		DFGNodeInst* getInstNode(Instruction* t_inst);
 		DFGEdge* getEdgefrom(DFGNodeInst* t_src,DFGNodeInst* t_dst);
 
   public:
@@ -86,17 +64,6 @@ class DFG {
 		 */
 		~DFG();
 
-		/**Extract DFG from specific function 
- 		* @param t_F the function pointer which the mapperPass is processing
- 		*/
-    void construct(Function&);
-
-		/** Print the information of DFG.
-		 * Print the name and number of occurrences of each operation that appears in the data flow graph
-		 * Print the number of DFGNodes and DFGLinks in the DFG
-		 */
-    void showOpcodeDistribution();
-
 		/** Generate the Dot file according the DFG
 		 * we can latter use dot tool to generate the png file of DFG.
  		 * @param t_F : the function pointer which the mapperPass is processing
@@ -104,7 +71,14 @@ class DFG {
 		 */
 		void generateDot(Function &t_F, bool t_isTrimmedDemo);
 
+		/**get the InstNode count in DFG
+		 * return the m_InstNodes.size()
+		 */
 		int getInstNodeCount();
-    list<DFGNodeInst*>* getInstNodes(){return &m_InstNodes;}
+
+		/**get the InstNodes
+		 * return the &m_InstNodes
+		 */
+    list<DFGNodeInst*>* getInstNodes();
 };
 #endif

@@ -46,24 +46,27 @@ bool DFG::shouldIgnore(Instruction* t_inst) {
 	else return false;
 }
 
- /** 
+ /** Extract DFG from specific function 
+ 	* @param t_F the function pointer which the mapperPass is processing
+	*
 	* what is in his function
 	* 1. Clear the data structions which is used to save nodes and edges
 	* 2. make sure there has only one basic block in target function,and every inst has less than two operands
 	* 3. create DFGNode for all inst
 	* 4. create DFGEdge
-	* 5. connect all DFGNode to generate the DFG
+	* 5. connect all DFGNode to generate the DFG,and reorder the DFGNode and give every node a level.
+  * 6. print some information,if debug print is enable.
  */
 void DFG::construct(Function& t_F) {
 
-	//Clear the data structions which is used to save nodes and edges
+	//1.Clear the data structions which is used to save nodes and edges
   m_DFGEdges.clear();
   m_InstNodes.clear();
   int nodeID = 0;
   int dfgEdgeID = 0;
 	
 
-	//make sure this function has only one basic block
+	//2.make sure this function has only one basic block
 	if(t_F.getBasicBlockList().size()>1) {
 		DFG_ERR("The II have more then one basic block!");
 	}
@@ -76,12 +79,11 @@ void DFG::construct(Function& t_F) {
 	}
 
 
-	// Construct dfg nodes
-#ifdef CONFIG_DFG_DEBUG 
+	//3.Construct dfg nodes
+	IFDEF(CONFIG_DFG_DEBUG,
 	OUTS("\nDFG DEBUG",ANSI_FG_BLUE); 
 	OUTS("==================================",ANSI_FG_CYAN); 
-  OUTS("[constructing DFG of target function: "<< t_F.getName().str()<<"]",ANSI_FG_CYAN);
-#endif
+  OUTS("[constructing DFG of target function: "<< t_F.getName().str()<<"]",ANSI_FG_CYAN););
   for (BasicBlock::iterator II=t_F.begin()->begin(),IEnd=t_F.begin()->end(); II!=IEnd; ++II) {
     Instruction* curII = &*II;
     // Ignore this IR if it is ret.
@@ -89,17 +91,12 @@ void DFG::construct(Function& t_F) {
       continue;
     }
     DFGNodeInst* dfgNodeInst;
-#ifdef CONFIG_DFG_FULL_INST
-    dfgNodeInst = new DFGNodeInst(nodeID++,curII,changeIns2Str(curII));
-#else
-    dfgNodeInst = new DFGNodeInst(nodeID++,curII,curII->getOpcodeName());
-#endif
+    dfgNodeInst = new DFGNodeInst(nodeID++,curII,MUXDEF(CONFIG_DFG_FULL_INST,changeIns2Str(curII),curII->getOpcodeName()));
     m_InstNodes.push_back(dfgNodeInst);
-#ifdef CONFIG_DFG_DEBUG 
-    outs()<< *curII<<" -> (dfgNode ID: "<<dfgNodeInst->getID()<<")\n";
-#endif
+
+		IFDEF(CONFIG_DFG_DEBUG,outs()<< *curII<<" -> (dfgNode ID: "<<dfgNodeInst->getID()<<")\n");
   }
-  // Construct data flow edges.
+  //4.Construct data flow edges.
   for (DFGNodeInst* nodeInst: m_InstNodes) {
     Instruction* curII = nodeInst->getInst();
         for (Instruction::op_iterator op = curII->op_begin(), opEnd = curII->op_end(); op != opEnd; ++op) {
@@ -147,35 +144,42 @@ void DFG::construct(Function& t_F) {
         }
 					}
 
+	//5. connectDFGNode and reorder.
   connectDFGNodes();
 	reorderInstNodes();
+
+	//6. print summary information if debug is enable
+	IFDEF(CONFIG_DFG_DEBUG,showOpcodeDistribution());
 }
 
+/**reorder the InstNodes, give every Node a level,and reorder them according to the leavel.
+ * what is in his function
+ * 1. find the longest path in dfg
+ * 2. set level for nodes,first the nodes in longestPath,second other node;
+ * 3. reorder the InstNode in DFG
+ */
 void DFG::reorderInstNodes(){
+
+	//1.find the longest path in dfg
 	list<DFGNodeInst*> longestPath;
-	// find the longest path in dfg
 	DFS_findlongest(&longestPath);
-#ifdef CONFIG_DFG_DEBUG 
+	IFDEF(CONFIG_DFG_DEBUG,
 	OUTS("==================================",ANSI_FG_CYAN); 
   OUTS("[Reorder Inst Nodes]",ANSI_FG_CYAN);
 	outs()<<"longestPath: ";
 	for(DFGNodeInst* InstNode:longestPath){
 		outs()<<"Node"<<InstNode->getID()<<" -> ";
 	}
-	outs()<<"end\n";
-#endif
-#ifdef CONFIG_DFG_LONGEST
-	changeLongestPathColor(&longestPath,"orange");
-#endif
+	outs()<<"end\n");
+	IFDEF(CONFIG_DEF_LONGEST,changeLongestPathColor(&longestPath,"orange"));
 
+  //2.set level for nodes,first the nodes in longestPath,second other node;
 	set<DFGNodeInst*> havenotSetLevelNodes;
 	int maxlevel = 0;
-	//set level for nodes in longestPath
 	maxlevel =setLevelLongestPath(&longestPath,&havenotSetLevelNodes) ;
-
-	//set level for other node
 	setLevelforOtherNodes(&havenotSetLevelNodes);
-	//reorder the InstNode in DFG
+
+	//3.reorder the InstNode in DFG,and save in m_InstNodes
 	list<DFGNodeInst*> temp;
 	for(int i = 0;i<=maxlevel;i++){
 		for(DFGNodeInst* InstNode: m_InstNodes){
@@ -187,12 +191,12 @@ void DFG::reorderInstNodes(){
 	m_InstNodes.clear();
 	for(DFGNodeInst* InstNode: temp){
 		m_InstNodes.push_back(InstNode);
-#ifdef CONFIG_DFG_DEBUG 
-		outs()<<"Node"<<InstNode->getID()<<" "<<" level: "<< InstNode->getLevel()<<*(InstNode->getInst())<<"\n";
-#endif
+		IFDEF(CONFIG_DFG_DEBUG,outs()<<"Node"<<InstNode->getID()<<" "<<" level: "<< InstNode->getLevel()<<*(InstNode->getInst())<<"\n");
 	}
 }
 
+/** get the DFGEdge form t_src DFGInstNode to t_dst DFGInstNode
+ */
 DFGEdge* DFG::getEdgefrom(DFGNodeInst* t_src,DFGNodeInst* t_dst){
 	for(DFGEdge* edge: m_DFGEdges){
 		if(dynamic_cast<DFGNodeInst*>(edge->getSrc()) == t_src and dynamic_cast<DFGNodeInst*>(edge->getDst())== t_dst){
@@ -370,6 +374,7 @@ void DFG::reorderDFS(set<DFGNodeInst*>* t_visited, list<DFGNodeInst*>* t_targetP
 }
 
  /** 
+	* this function is used to connect DFGNodes to generate DFG
 	* what is in this function:
  	* Traverse all DFGEdges ,setOutEdge for the src DFGNode and setInEdeg for the dst DFGNode
  	*/
@@ -394,11 +399,9 @@ void DFG::generateDot(Function &t_F, bool t_isTrimmedDemo) {
 
   //Dump InstDFG nodes.
   for (DFGNodeInst* node: m_InstNodes) {
-      file << "\tNode" << node->getID() << "[shape=record,"<<"color="<<node->color<<",label=\"" << "(" << node->getID() << ") " << node->getName();
-#ifdef CONFIG_DFG_LEVEL
-			file << " level="<<node->getLevel();
-#endif
-		 file	<< "\"];\n";
+     	file << "\tNode" << node->getID() << "[shape=record,"<<"color="<<node->color<<",label=\"" << "(" << node->getID() << ") " << node->getName();
+			IFDEF(CONFIG_DFG_LEVEL,file << " level="<<node->getLevel());
+		 	file	<< "\"];\n";
 		}
   //Dump ConstDFG nodes.
   for (DFGNodeConst* node: m_ConstNodes) {
@@ -418,6 +421,10 @@ void DFG::generateDot(Function &t_F, bool t_isTrimmedDemo) {
 
 }
 
+/** Print the information of DFG.
+ * Print the name and number of occurrences of each operation that appears in the data flow graph
+ * Print the number of DFGNodes and DFGLinks in the DFG
+ */
 void DFG::showOpcodeDistribution() {
 
 	OUTS("==================================",ANSI_FG_CYAN); 
@@ -436,17 +443,20 @@ void DFG::showOpcodeDistribution() {
 	outs()<< "DFG edge count: "<<m_DFGEdges.size()<<";\n";
 }
 
-DFGNodeInst* DFG::getInstNode(Value* t_value) {
-  for (DFGNode* node: m_InstNodes) {
-					DFGNodeInst* nodeInst = dynamic_cast<DFGNodeInst*>(node);
-					if(nodeInst&&nodeInst->getInst() == t_value){
-      return nodeInst;
+/**search the DFGNodeInst using the Instruction*
+ */
+DFGNodeInst* DFG::getInstNode(Instruction* t_inst) {
+  for (DFGNodeInst* node: m_InstNodes) {
+					if(node->getInst() == t_inst){
+      return node;
 					}
   }
   assert("ERROR cannot find the corresponding DFG node.");
   return NULL;
 }
 
+/**Get the pointer of DFGEdge from t_src to t_dst DFGNode.The DFGEdge must be confirmed to have been created.You can use hasDFGEdge() to check this.
+*/
 DFGEdge* DFG::getDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   for (DFGEdge* edge: m_DFGEdges) {
     if (edge->getSrc() == t_src and
@@ -459,6 +469,9 @@ DFGEdge* DFG::getDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   return NULL;
 }
 
+/**Check if the DFGEdge from t_src to t_dst DFGNode has be created
+ * @return true main the DFGEdge from t_src to t_dst is in m_DFGEdges,has been created in the past
+ */
 bool DFG::hasDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   for (DFGEdge* edge: m_DFGEdges) {
     if (edge->getSrc() == t_src and
@@ -469,6 +482,8 @@ bool DFG::hasDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   return false;
 }
 
+/** get inst's name return a string
+ */
 string DFG::changeIns2Str(Instruction* t_ins) {
   string temp_str;
   raw_string_ostream os(temp_str);
@@ -478,4 +493,8 @@ string DFG::changeIns2Str(Instruction* t_ins) {
 
 int DFG::getInstNodeCount(){
 	return m_InstNodes.size();
+}
+
+list<DFGNodeInst*>* DFG::getInstNodes(){
+	return &m_InstNodes;
 }
