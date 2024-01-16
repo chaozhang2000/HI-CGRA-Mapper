@@ -30,6 +30,7 @@ int Mapper::getResMII(){
 void Mapper::heuristicMap(){
 	IFDEF(CONFIG_MAP_DEBUG,OUTS("\nMAP DEBUG",ANSI_FG_BLUE)); 
 
+	bool mapsuccess = false;
  	//1. start from min II to try map
 	while(1){
 		IFDEF(CONFIG_MAP_DEBUG,OUTS("==================================",ANSI_FG_CYAN));
@@ -39,15 +40,18 @@ void Mapper::heuristicMap(){
 		m_mrrg->MRRGclear();
 		mapInfoInit();
 		
-		bool mapsuccess = false;
 		//3. Traverse all InstNodes in dfg, try to map them one by one
 		for(list<DFGNodeInst*>::iterator InstNode=m_dfg->getInstNodes()->begin();InstNode!=m_dfg->getInstNodes()->end(); InstNode ++){
 			//handle the first situation, the InstNode is start DFGNode
 			if(allPreInstNodeNotMapped(*InstNode)){
+				IFDEF(CONFIG_MAP_DEBUG,OUTS("----------------------------------",ANSI_FG_CYAN));
+				IFDEF(CONFIG_MAP_DEBUG,outs()<<"Try to find paths for StartDFGNode"<<(*InstNode)->getID()<<" to each CGRANode\n"); 
 				PATH* path = getMapPathforStartInstNode(*InstNode);
 				if(path != NULL){//find path
 					scheduleNodeInPath(path,*InstNode);
 					setmapInfo(getPathEndCGRANode(path),*InstNode,getPathEndCycle(path));
+					IFDEF(CONFIG_MAP_DEBUG,outs()<<"Find mincost Path: ");
+					IFDEF(CONFIG_MAP_DEBUG,dumpPath(path));
 					delete path;
 					m_mrrg->submitschedule();
 					continue;
@@ -59,6 +63,8 @@ void Mapper::heuristicMap(){
 			}
 			//handle the second situation,the InstNode has all preInst Mapped
 			else if(allPreInstNodeMapped(*InstNode)){
+				IFDEF(CONFIG_MAP_DEBUG,OUTS("----------------------------------",ANSI_FG_CYAN));
+				IFDEF(CONFIG_MAP_DEBUG,outs()<<"Try to find paths for DFGNode"<<(*InstNode)->getID()<<"(havePreNode) to each CGRANode\n"); 
 				PATHS* paths = getMapPathsFromPreToInstNode(*InstNode);
 				if(paths != NULL){
 					for(PATH* path:*paths){
@@ -80,9 +86,12 @@ void Mapper::heuristicMap(){
 				assert("this DFGInstNode has some preInstNode mapped and also has some preInstNode not mapped, this should not happened,Mapper has unfixed bugs");
 			}
 		}
-		m_II ++;
 		if(m_II >m_mrrg->getMRRGcycles()/2 or mapsuccess)break;//TODO:
+		m_II ++;
 	}
+	IFDEF(CONFIG_MAP_DEBUG,OUTS("==================================\nMapping result",ANSI_FG_CYAN));
+	if(mapsuccess)IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping successful with II = "<<m_II<<"\n");	
+	else IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping failed with II = "<<m_II<<"\n");	
 }
 
 /**this funciton judge if the all PreInstNode of t_InstNode is not mapped
@@ -115,7 +124,6 @@ bool Mapper::allPreInstNodeMapped(DFGNodeInst* t_InstNode){
  */
 PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
 	PATHS paths;
-	IFDEF(CONFIG_MAP_DEBUG,outs()<<"\nTry to find paths for StartDFGNode"<<t_InstNode->getID()<<" to each CGRANode\n"); 
 	//1. search every cgraNode to find a path if found push it into paths
 	for(int r = 0; r< m_cgra->getrows();r++){
 		for(int c = 0; c< m_cgra->getcolumns();c++){
@@ -148,8 +156,6 @@ PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
 			if(deletepath != mincostPath)
 				delete deletepath;
 		}
-		IFDEF(CONFIG_MAP_DEBUG,outs()<<"Find mincost Path: ");
-		IFDEF(CONFIG_MAP_DEBUG,dumpPath(mincostPath));
 		return mincostPath;
 	}else{
 		return NULL;
@@ -163,8 +169,6 @@ PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
  * 3.if the t_InstNode have two preNode, find a path from one preNode to the cgraNode first,if find a path, schedule it,then route another preNode to the end of found path.if found save the paths,only save the shortest paths.
  */
 PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
-	IFDEF(CONFIG_MAP_DEBUG,outs()<<"\nTry to find paths for DFGNode"<<t_InstNode->getID()<<"(havePreNode) to each CGRANode\n"); 
-
 	int minendcycle = m_mrrg->getMRRGcycles()/2;
 	PATHS* minpaths = NULL;
   //1. search every cgraNode consider the cgraNode as the target of mapping t_InstNode.
@@ -375,7 +379,6 @@ PATH* Mapper::getmaincostPath(PATHS* paths){
 void Mapper::scheduleNodeInPath(PATH* path,DFGNodeInst* t_InstNode){
 	PATH::reverse_iterator ri = path->rbegin();
 	CGRANode* dstCGRANode = (*ri).second;
-	IFDEF(CONFIG_MAP_DEBUG_SCHEDULE,outs()<<"Schedule DFG node["<<t_InstNode->getID()<<"] onto CGRANode["<<dstCGRANode->getID()<<"] at cycle "<< (*ri).first <<" with II: "<<m_II<<"\n"); 
 	m_mrrg->scheduleNode(dstCGRANode,t_InstNode,(*ri).first,1,m_II);
 }
 
@@ -408,9 +411,6 @@ void Mapper::scheduleLinkInPath(PATH* path,DFGNodeInst* t_InstNode){
 					m_mrrg->scheduleNode(cgraNodepre,t_InstNode,cyclecurrent,1,m_II);//TODO:should not occupied by t_InstNode,should be occupied by empty Inst
 				}else{
 					srcNodeDelay = false;//srcNodedelay will never happen again if program arrive here
-#ifdef CONFIG_MAP_DEBUG_SCHEDULE 
-					outs()<<"Schedule CGRALink["<<currentLink->getID()<<"] from CGRANode["<<(*path)[cyclepre]->getID()<<"] to CGRANode["<< (*path)[cyclecurrent]->getID()<<"] at cycle "<<cyclepre<<" to cycle "<<cyclepre + 1<<" with II = "<<m_II<<"\n"; 
-#endif
 					m_mrrg->scheduleLink(currentLink,cyclepre,1,m_II);
 				}	
 			}	

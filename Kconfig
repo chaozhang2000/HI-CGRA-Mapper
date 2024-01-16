@@ -59,10 +59,6 @@ config MAP_DEBUG_PATH
 	depends on MAP_DEBUG
   bool "Enable find path detail print"
   default n
-config MAP_DEBUG_SCHEDULE
-	depends on MAP_DEBUG
-  bool "Enable schedule print"
-  default n
 endmenu
 endmenu
 
