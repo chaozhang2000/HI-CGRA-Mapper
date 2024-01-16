@@ -22,18 +22,41 @@ class CGRA {
     int m_columns;
 
   public:
+		/**save the CGRANodes in CGRA
+		 * pointer of nodes[m_rows][m_columns]
+		 */
     CGRANode ***nodes;
+
+		/**save the CGRALinks in CGRA
+		 * pointer of links[m_LinkCount]
+		 */
     CGRALink **links;
+
 		/**The constructor function of class CGRA
 		 */
 		CGRA(int t_rows,int t_columns);
 		~CGRA();
-		int getNodeCount(){return m_FUCount;}
-		int getLinkCount(){return m_LinkCount;}
-		int getrows(){return m_rows;}
-		int getcolumns(){return m_columns;}
+
+		/**return m_FUCount
+		 */
+		int getNodeCount();
+
+		/**return m_LinkCount
+		 */
+		int getLinkCount();
+
+		/**return m_rows
+		 */
+		int getrows();
+
+		/**return m_columns
+		 */
+		int getcolumns();
 		
-		CGRALink* getEdgefrom(CGRANode* t_src,CGRANode* t_dst);
+		/**get the CGRALink form CGRANode t_src to CGRANode t_dst
+		 * if not found return NULL,it found return the pointer to the link
+		 */
+		CGRALink* getLinkfrom(CGRANode* t_src,CGRANode* t_dst);
 
 		
 };

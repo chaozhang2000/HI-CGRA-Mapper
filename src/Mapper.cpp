@@ -14,39 +14,46 @@ Mapper::Mapper(DFG* t_dfg,CGRA* t_cgra,MRRG* t_mrrg){
 	}
 }
 
+/**this funciton get ResMII,this is the min possible II.
+ */
 int Mapper::getResMII(){
 	int ResMII=ceil(float(m_dfg->getInstNodeCount())/m_cgra->getNodeCount());
 	return ResMII;
 }
 
+/** what is in this function:
+ * 1. start from min II to try map
+ * 2. clear MRRG,m_mapInfo
+ * 3. traverse all InstNode in DFG, try to map them one by one, the InstNode is divided into two classes, InstNode whose all preNode(StartNode) is not mapped and InsoNode whose all preNode is mapped.For each kind of InstNode,try to find a path in MRRG to map them,if found,then schedule the path.
+ *
+ */
 void Mapper::heuristicMap(){
-#ifdef CONFIG_MAP_DEBUG 
-	OUTS("\nMAP DEBUG",ANSI_FG_BLUE); 
-#endif
+	IFDEF(CONFIG_MAP_DEBUG,OUTS("\nMAP DEBUG",ANSI_FG_BLUE)); 
+
+ 	//1. start from min II to try map
 	while(1){
-#ifdef CONFIG_MAP_DEBUG 
-		OUTS("==================================",ANSI_FG_CYAN); 
-		OUTS("start heuristic algorithm with II="<<m_II,ANSI_FG_CYAN); 
-#endif
+		IFDEF(CONFIG_MAP_DEBUG,OUTS("==================================",ANSI_FG_CYAN));
+		IFDEF(CONFIG_MAP_DEBUG,OUTS("start heuristic algorithm with II="<<m_II,ANSI_FG_CYAN)); 
+
+ 		//2. clear MRRG,m_mapInfo
 		m_mrrg->MRRGclear();
 		mapInfoInit();
+		
 		bool mapsuccess = false;
-
-		//Traverse all InstNodes in dfg, try to map them one by one
+		//3. Traverse all InstNodes in dfg, try to map them one by one
 		for(list<DFGNodeInst*>::iterator InstNode=m_dfg->getInstNodes()->begin();InstNode!=m_dfg->getInstNodes()->end(); InstNode ++){
 			//handle the first situation, the InstNode is start DFGNode
 			if(allPreInstNodeNotMapped(*InstNode)){
 				PATH* path = getMapPathforStartInstNode(*InstNode);
 				if(path != NULL){//find path
-					schedule(path,*InstNode,true);
+					scheduleNodeInPath(path,*InstNode);
+					setmapInfo(getPathEndCGRANode(path),*InstNode,getPathEndCycle(path));
 					delete path;
 					m_mrrg->submitschedule();
 					continue;
 				}
 				else{//not find path, map failed add II try again
-#ifdef CONFIG_MAP_DEBUG 
-					outs()<<"Can't find path for Start InstNode"<<(*InstNode)->getID()<<"\nFaild mapping with II = "<<m_II<<"\n";
-#endif
+					IFDEF(CONFIG_MAP_DEBUG,outs()<<"Can't find path for Start InstNode"<<(*InstNode)->getID()<<"\nFaild mapping with II = "<<m_II<<"\n");
 				break;
 				}
 			}
@@ -54,20 +61,18 @@ void Mapper::heuristicMap(){
 			else if(allPreInstNodeMapped(*InstNode)){
 				PATHS* paths = getMapPathsFromPreToInstNode(*InstNode);
 				if(paths != NULL){
-					bool firsttime = true;
 					for(PATH* path:*paths){
-						schedule(path,*InstNode,firsttime);
-						m_mrrg->submitschedule();
-						firsttime = false;
-						delete path;
+						scheduleLinkInPath(path,*InstNode);
 					}
+					scheduleNodeInPath(paths->front(),*InstNode);
+					m_mrrg->submitschedule();
+					setmapInfo(getPathEndCGRANode(paths->front()),*InstNode,getPathEndCycle(paths->front()));
+					for(PATH* path: *paths){delete path;}
 					delete paths;
 					if(next(InstNode,1) == m_dfg->getInstNodes()->end()){ mapsuccess = true;break;}
 					continue;
 				}else{
-#ifdef CONFIG_MAP_DEBUG 
-					outs()<<"Can't find path for InstNode"<<(*InstNode)->getID()<<"\nFaild mapping with II = "<<m_II<<"\n";
-#endif
+					IFDEF(CONFIG_MAP_DEBUG,outs()<<"Can't find path for InstNode"<<(*InstNode)->getID()<<"\nFaild mapping with II = "<<m_II<<"\n");
 					break;
 				}
 			}
@@ -80,6 +85,8 @@ void Mapper::heuristicMap(){
 	}
 }
 
+/**this funciton judge if the all PreInstNode of t_InstNode is not mapped
+ */
 bool Mapper::allPreInstNodeNotMapped(DFGNodeInst* t_InstNode){
 	for(DFGNodeInst* preInstNode: *(t_InstNode->getPredInstNodes())){
 		if(m_mapInfo[preInstNode]->mapped == true){
@@ -88,6 +95,9 @@ bool Mapper::allPreInstNodeNotMapped(DFGNodeInst* t_InstNode){
 	}
 	return true;
 }
+
+/**this funciton judge if all PreInstNode of t_InstNode is mapped
+ */
 bool Mapper::allPreInstNodeMapped(DFGNodeInst* t_InstNode){
 	for(DFGNodeInst* preInstNode: *(t_InstNode->getPredInstNodes())){
 		if(m_mapInfo[preInstNode]->mapped == false){
@@ -98,12 +108,15 @@ bool Mapper::allPreInstNodeMapped(DFGNodeInst* t_InstNode){
 }
 
 //TODO:should not be any CGRANode
+/**This function is used to find a path for a StartInstNode in MRRG,if found return the pointer of path,else return NULL
+ * what is in this function:
+ * 1. search every cgraNode to find a path,if found,pushed it to paths
+ * 2. find the mincost path in paths and return
+ */
 PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
 	PATHS paths;
-#ifdef CONFIG_MAP_DEBUG 
-			outs()<<"\nTry to find paths for StartDFGNode"<<t_InstNode->getID()<<" to each CGRANode\n"; 
-#endif
-	//search every cgraNode to find a path if find push it into paths
+	IFDEF(CONFIG_MAP_DEBUG,outs()<<"\nTry to find paths for StartDFGNode"<<t_InstNode->getID()<<" to each CGRANode\n"); 
+	//1. search every cgraNode to find a path if found push it into paths
 	for(int r = 0; r< m_cgra->getrows();r++){
 		for(int c = 0; c< m_cgra->getcolumns();c++){
 			CGRANode* cgraNode = m_cgra->nodes[r][c];
@@ -119,86 +132,82 @@ PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
 					cycle ++;	
 				}
 				if(path!=NULL){
-#ifdef CONFIG_MAP_DEBUG_PATH 
-				outs()<<"Try to find path for StartDFGNode"<<t_InstNode->getID()<<" to CGRANode"<< cgraNode->getID()<<" success!\n  Path:";
-				dumpPath(path);
-#endif
-				paths.push_back(path);
+					IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for StartDFGNode"<<t_InstNode->getID()<<" to CGRANode"<< cgraNode->getID()<<" success!\n  Path:");
+					IFDEF(CONFIG_MAP_DEBUG_PATH,dumpPath(path));
+					paths.push_back(path);
 				}else{
-#ifdef CONFIG_MAP_DEBUG_PATH 
-				outs()<<"Try to find path for StartDFGNode"<<t_InstNode->getID()<<" to CGRANode"<< cgraNode->getID()<<" falied!\n"; 
-#endif
+					IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for StartDFGNode"<<t_InstNode->getID()<<" to CGRANode"<< cgraNode->getID()<<" falied!\n"); 
 				}
 			}
 		}
 	}
-	//check if find the paths,and choose the return path
+ 	//2. find the mincost path in paths and return
 	if(paths.size()!= 0){
-	//find the mincostPath in paths
 		PATH* mincostPath = getmaincostPath(&paths);
 		for(PATH* deletepath : paths){//only save the mincostPath
 			if(deletepath != mincostPath)
 				delete deletepath;
 		}
-#ifdef CONFIG_MAP_DEBUG 
-		outs()<<"Find mincost Path: ";
-		dumpPath(mincostPath);
-#endif
+		IFDEF(CONFIG_MAP_DEBUG,outs()<<"Find mincost Path: ");
+		IFDEF(CONFIG_MAP_DEBUG,dumpPath(mincostPath));
 		return mincostPath;
-	}else{//if not find a path,return NULL
+	}else{
 		return NULL;
 	}
 }
 
+/**This function is used to find paths for a InstNode which have one or two preInstNode,if found return the pointer of paths,else return NULL
+ * what is in this function:
+ * 1. search every cgraNode consider the cgraNode as the target of mapping t_InstNode.
+ * 2.if the t_InstNode have only one preNode, just find the path from it's preNode to this Node. only save the shortest path.
+ * 3.if the t_InstNode have two preNode, find a path from one preNode to the cgraNode first,if find a path, schedule it,then route another preNode to the end of found path.if found save the paths,only save the shortest paths.
+ */
 PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
-#ifdef CONFIG_MAP_DEBUG 
-			outs()<<"\nTry to find paths for DFGNode"<<t_InstNode->getID()<<"(havePreNode) to each CGRANode\n"; 
-#endif
+	IFDEF(CONFIG_MAP_DEBUG,outs()<<"\nTry to find paths for DFGNode"<<t_InstNode->getID()<<"(havePreNode) to each CGRANode\n"); 
+
 	int minendcycle = m_mrrg->getMRRGcycles()/2;
 	PATHS* minpaths = NULL;
+  //1. search every cgraNode consider the cgraNode as the target of mapping t_InstNode.
 	for(int r = 0; r<m_cgra->getrows();r++){
-		for(int c = 0; c< m_cgra->getcolumns();c++){//for every CGRANode try to find paths
+		for(int c = 0; c< m_cgra->getcolumns();c++){
 			CGRANode* cgraNode = m_cgra->nodes[r][c];
 			if(cgraNode->canSupport(t_InstNode->getOpcodeName())and cgraNode->isdisable()==false ){
 				list<DFGNodeInst*>* preNodes = t_InstNode->getPredInstNodes();
-				if(preNodes->size() == 1){//when the DFGNodeInst only have one prenode.
+
+ 				//2.if the t_InstNode have only one preNode, just find the path from it's preNode to this Node. only save the shortest path.
+				if(preNodes->size() == 1){
 					DFGNodeInst* preNode = preNodes->front();
 					CGRANode* srccgraNode = m_mapInfo[preNode]->cgraNode;
 					int srccycle = m_mapInfo[preNode]->cycle;
 					PATH* pathtonode = getPathToCGRANode(srccgraNode,cgraNode,srccycle,minendcycle,false);
-					if(pathtonode != NULL){//get Path to CGRANode.
-#ifdef CONFIG_MAP_DEBUG_PATH 
-						outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(onePreNode) to CGRANode"<< cgraNode->getID()<<" success!\n  Path:";
-						dumpPath(pathtonode);
-#endif
-						PATHS* paths = new PATHS;
-						paths -> push_back(pathtonode);
+					if(pathtonode != NULL){
+						IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(onePreNode) to CGRANode"<< cgraNode->getID()<<" success!\n  Path:");
+						IFDEF(CONFIG_MAP_DEBUG_PATH,dumpPath(pathtonode));
 						if(minpaths != NULL) {for(PATH* path: *minpaths){delete path;}delete minpaths;}
-						minpaths = paths;
+						minpaths = new PATHS;
+						minpaths -> push_back(pathtonode);
 						minendcycle= getPathEndCycle(pathtonode);
 					}else{
-#ifdef CONFIG_MAP_DEBUG_PATH 
-						outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(onePreNode) to CGRANode"<< cgraNode->getID()<<" falied!\n"; 
-#endif
+						IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(onePreNode) to CGRANode"<< cgraNode->getID()<<" falied!\n"); 
 						continue;
 					}
-				}else{//when the DFGNodeInst have two prenode.
+ 				//3.if the t_InstNode have two preNode, find a path from one preNode to the cgraNode first,if find a path, schedule it,then route another preNode to the end of found path.if found save the paths,only save the shortest paths.
+				}else{
 					PATH* pathstartfrom[2] = {NULL,NULL};
 					PATH* pathroute[2] = {NULL,NULL};
 					int endcycle[2];
 					endcycle[0] = m_mrrg->getMRRGcycles();
 					endcycle[1] = m_mrrg->getMRRGcycles();
-					for(int i = 0; i<2 ;i++){
+					for(int i = 0; i<2 ;i++){//try to find a path start from one preNode first,because there are two preNode,so need try twice
 						DFGNodeInst* predfgNode = i == 0 ? *(preNodes->begin()):*(next(preNodes->begin(),1));
 						CGRANode* srccgraNode = m_mapInfo[predfgNode]->cgraNode;
 						int srccycle = m_mapInfo[predfgNode]->cycle;
 						pathstartfrom[i] = getPathToCGRANode(srccgraNode,cgraNode,srccycle,minendcycle,false);
 						if(pathstartfrom[i] != NULL){//if the path from a srcNode is found,try to route another path to it
-#ifdef CONFIG_MAP_DEBUG_PATH 
-							outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(twoPreNode) from CGRANode"<< srccgraNode->getID() <<" to CGRANode"<< cgraNode->getID()<<" success!\n  Path:";
-							dumpPath(pathstartfrom[i]);
-#endif
-							schedule(pathstartfrom[i],t_InstNode,false);
+							IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(twoPreNode) from CGRANode"<< srccgraNode->getID() <<" to CGRANode"<< cgraNode->getID()<<" success!\n  Path:");
+							IFDEF(CONFIG_MAP_DEBUG_PATH,dumpPath(pathstartfrom[i]));
+
+							scheduleLinkInPath(pathstartfrom[i],t_InstNode);
 							DFGNodeInst* anotherpredfgNode = i == 1 ? *(preNodes->begin()):*(next(preNodes->begin(),1));
 							CGRANode* anotherSrccgraNode = m_mapInfo[anotherpredfgNode]->cgraNode;
 							int anotherSrccycle = m_mapInfo[anotherpredfgNode]->cycle;
@@ -207,23 +216,17 @@ PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
 							if(pathroute[i]!=NULL){
 								endcycle[i] = getPathEndCycle(pathroute[i]);
 								if(endcycle[i]<minendcycle) minendcycle = endcycle[i];
-#ifdef CONFIG_MAP_DEBUG_PATH 
-								outs()<<"Try to route form another preDFGNode to CGRANode"<< cgraNode->getID()<<" success!\n  Path:";
-								dumpPath(pathroute[i]);
-#endif
+								IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to route form another preDFGNode to CGRANode"<< cgraNode->getID()<<" success!\n  Path:");
+								IFDEF(CONFIG_MAP_DEBUG_PATH,dumpPath(pathroute[i]));
 							}else{
-#ifdef CONFIG_MAP_DEBUG_PATH 
-								outs()<<"Try to route form another preDFGNode to CGRANode"<< cgraNode->getID()<<" falied!\n"; 
-#endif
+								IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to route form another preDFGNode to CGRANode"<< cgraNode->getID()<<" falied!\n"); 
 							}
 							m_mrrg->clearUnsubmit();
 						}else{
-#ifdef CONFIG_MAP_DEBUG_PATH 
-						outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(twoPreNode) from CGRANode"<< srccgraNode->getID() <<" to CGRANode"<< cgraNode->getID()<<" faild!\n";
-#endif
+							IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(twoPreNode) from CGRANode"<< srccgraNode->getID() <<" to CGRANode"<< cgraNode->getID()<<" faild!\n");
 						}
 					}
-					//finish search ,get minpaths
+					//finish search ,save minpaths
 					if(pathroute[0] == NULL and pathroute[1]== NULL){//route failed
 						if (pathstartfrom[0] != NULL) delete pathstartfrom[0];
 						if (pathstartfrom[1] != NULL) delete pathstartfrom[1];
@@ -232,6 +235,7 @@ PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
 						int deletePathID = endcycle[0] < endcycle[1] ? 1:0;
 						if(pathstartfrom[deletePathID] != NULL) delete pathstartfrom[deletePathID];
 						if(pathroute[deletePathID] != NULL) delete pathroute[deletePathID];
+						if(minpaths != NULL) {for(PATH* path: *minpaths){delete path;}delete minpaths;}
 						minpaths = new PATHS;
 						minpaths->push_back(pathroute[betterPathID]);
 						minpaths->push_back(pathstartfrom[betterPathID]);
@@ -254,6 +258,11 @@ PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
 	return minpaths;
 }
 
+/**if the isroute == true.This function is used to find path from src_CGRANode at cycle src_cycle to dst_CGRANode at dst_cycle in MRRG.
+ * else this function used to find a path from src_CGRANode at src_cycle to dst_CGRANode.the search range in MRRG is src_cycle to dst_cycle.
+ * this function use BFS to find path and route now
+ * TODO: BFS need two much time,try A* or ...
+ */
 PATH* Mapper::getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle,bool isroute){
 	if(m_mrrg->haveSpaceforNode(dst_CGRANode,m_II) == false){
 		return NULL;
@@ -285,11 +294,13 @@ PATH* Mapper::getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, 
 		//Search
 		//consider to neighbor CGRANode at next cycle
 		for(CGRANode* neighbor : *(currentCGRANode->getNeighbors())){
-			CGRALink* linktoNeighbor = m_cgra->getEdgefrom(currentCGRANode,neighbor);
-			if(m_mrrg->canOccupyLinkInMRRG(linktoNeighbor,currentcycle,1,m_II)and m_mrrg->canOccupyLinkInUnSubmit(linktoNeighbor,currentcycle,1,m_II)){
-				pair<CGRANode*,int> nextMRRGNode = make_pair(neighbor,currentcycle + 1);
-				preMRRGNode[nextMRRGNode] = currentMRRGNode;
-				q.push(nextMRRGNode);
+			CGRALink* linktoNeighbor = m_cgra->getLinkfrom(currentCGRANode,neighbor);
+			if(linktoNeighbor != NULL){
+				if(m_mrrg->canOccupyLinkInMRRG(linktoNeighbor,currentcycle,1,m_II)and m_mrrg->canOccupyLinkInUnSubmit(linktoNeighbor,currentcycle,1,m_II)){
+					pair<CGRANode*,int> nextMRRGNode = make_pair(neighbor,currentcycle + 1);
+					preMRRGNode[nextMRRGNode] = currentMRRGNode;
+					q.push(nextMRRGNode);
+				}
 			}
 		}
 		//consider delay on current CGRANode at next cycle
@@ -316,6 +327,7 @@ PATH* Mapper::getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, 
 
 /**This function is used to judge if the path can delay one cycle at a cgraNode
  * is used in function getPathToCGRANode
+ * consider two situation,the data need to save in start CGRANode's fu result reg,or the data need to save the preCGRANode's input link.
  * @param: cgraNode the CGRANode we want to delay
  * @param: MRRGpath the MRRGpath record the preNodes of cgraNode
  * @param: cycle  the cgraNode delay at cycle for one cycle;
@@ -331,8 +343,8 @@ bool Mapper::canDelayInCGRANodeatCycle(CGRANode* cgraNode,int cycle,map<pair<CGR
 		if(m_mrrg->canOccupyNodeInMRRG(cgraNode,cycle,1,m_II)){
 			return true;
 		}
-	}else{//the cgraNode is not the statr of path
-		CGRALink* cgralink = m_cgra->getEdgefrom(preCGRANode,cgraNode);
+	}else{//the cgraNode is not the start of path
+		CGRALink* cgralink = m_cgra->getLinkfrom(preCGRANode,cgraNode);
 		if(m_mrrg->canOccupyLinkInMRRG(cgralink,cycle-1,1,m_II)and m_mrrg->canOccupyLinkInUnSubmit(cgralink,cycle-1,1,m_II)){
 			return true;
 		}
@@ -340,8 +352,7 @@ bool Mapper::canDelayInCGRANodeatCycle(CGRANode* cgraNode,int cycle,map<pair<CGR
 	return false;
 }
 
-/** this function try to find a path with min cost,(choose a path to schedule)
- * TODO: now only consider the distance cost,more should be consider later
+/** this function find a path with min cost in paths
  */
 PATH* Mapper::getmaincostPath(PATHS* paths){
 		PATH::reverse_iterator rit = paths->front()->rbegin();
@@ -357,27 +368,25 @@ PATH* Mapper::getmaincostPath(PATHS* paths){
 		return mincostpath;
 }
 
-/** this function try to schedule the path in MRRG
- * @param t_InstNode: the dst DFGNode at the end of path
- *
- * TODO:handle the CGRANode and CGRALink wait status.
+/** this function try to schedule the dstCGRANode in path, it will call m_mrrg->scheduleNode function,to create unsubmit schedule information.
+ * @param t_InstNode: the dst DFGNodeInst at the end of path
+ * @param path: the path 
  */
-bool Mapper::schedule(PATH* path,DFGNodeInst* t_InstNode,bool t_IncludeDstCGRANode){
-	//schedule the Node.
-	if(t_IncludeDstCGRANode){
+void Mapper::scheduleNodeInPath(PATH* path,DFGNodeInst* t_InstNode){
 	PATH::reverse_iterator ri = path->rbegin();
 	CGRANode* dstCGRANode = (*ri).second;
-#ifdef CONFIG_MAP_DEBUG_SCHEDULE 
-			outs()<<"Schedule DFG node["<<t_InstNode->getID()<<"] onto CGRANode["<<dstCGRANode->getID()<<"] at cycle "<< (*ri).first <<" with II: "<<m_II<<"\n"; 
-#endif
+	IFDEF(CONFIG_MAP_DEBUG_SCHEDULE,outs()<<"Schedule DFG node["<<t_InstNode->getID()<<"] onto CGRANode["<<dstCGRANode->getID()<<"] at cycle "<< (*ri).first <<" with II: "<<m_II<<"\n"); 
 	m_mrrg->scheduleNode(dstCGRANode,t_InstNode,(*ri).first,1,m_II);
-	m_mapInfo[t_InstNode]->cgraNode = dstCGRANode;
-	m_mapInfo[t_InstNode]->cycle = (*ri).first;
-	m_mapInfo[t_InstNode]->mapped = true;
-	}
-	
-	//schedule the Link.
-	
+}
+
+/** this function try to schedule the links in path, it will call m_mrrg->scheduleLink function,to create unsubmit schedule information.
+ * if data delay in a CGRANode,we need to consider where this data is really saved.
+ * for example CGRANode0(0)->CGRANode0(1)->CGRANode1(2),data delay in start CGRANode for one cycle,at this cycle we don't want CGRANode0's fu do other calculate,because it will modify the data in fu reg.so we need to use mrrg->scheduleNode to occupied CGRANode0.
+ * path CGRANode0(0)->CGRANode1(1)->CGRANode1(2),data delay in CGRANode1 for one cycle,at this cycle,the data save in the reg in CGRALink from CGRANode0 to CGRANode1,so we need to occupied this Link using mrrg->scheduleLink.
+ * @param t_InstNode: the dst DFGNodeInst at the end of path
+ * @param path: the path 
+ */
+void Mapper::scheduleLinkInPath(PATH* path,DFGNodeInst* t_InstNode){
 	PATH::iterator it = path->begin();
 	int cyclepre = 0;
 	int cyclecurrent = 0;
@@ -389,7 +398,7 @@ bool Mapper::schedule(PATH* path,DFGNodeInst* t_InstNode,bool t_IncludeDstCGRANo
 			cyclecurrent = (*it).first;
 			cgraNodecurrent = (*it).second;
 			if(cgraNodepre != cgraNodecurrent and cgraNodepre!=NULL){
-				currentLink = m_cgra->getEdgefrom(cgraNodepre,cgraNodecurrent);
+				currentLink = m_cgra->getLinkfrom(cgraNodepre,cgraNodecurrent);
 			}
 
 			if(it != path->begin()){//the first node in path don't need process
@@ -408,9 +417,10 @@ bool Mapper::schedule(PATH* path,DFGNodeInst* t_InstNode,bool t_IncludeDstCGRANo
 			cyclepre= cyclecurrent;
 			cgraNodepre = cgraNodecurrent;
 	}
-	return true;
 }
 
+/** init(clear) the m_mapInfo. Ready to do mapping
+ */
 void Mapper::mapInfoInit(){
 	for(DFGNodeInst* InstNode: *(m_dfg->getInstNodes())){
 		m_mapInfo[InstNode]->cgraNode = NULL;
@@ -419,6 +429,19 @@ void Mapper::mapInfoInit(){
 	}
 }
 
+/** set the m_mapInfo,call this function after the mrrg->submitschedule
+ * mean the t_dstCGRANode's mapping is finished.
+ * record DFGNodeInst's mapping result in m_mapInfo.
+ */
+void Mapper::setmapInfo(CGRANode*t_dstCGRANode,DFGNodeInst* t_InstNode,int t_cycle){
+	m_mapInfo[t_InstNode]->cgraNode = t_dstCGRANode;
+	m_mapInfo[t_InstNode]->cycle = t_cycle;
+	m_mapInfo[t_InstNode]->mapped = true;
+	
+}
+
+/**print the path
+ */
 void Mapper::dumpPath(PATH* path){
 	 for(PATH::iterator it =path->begin();it != path->end();it++) {
 				outs()<<"CGRANode"<<(it->second)->getID()<<"("<<it->first<<")"<<"->";
@@ -426,9 +449,18 @@ void Mapper::dumpPath(PATH* path){
 	 outs()<<"\n";
 }
 
+/**get the path end cycle
+ */
 int Mapper::getPathEndCycle(PATH* path){
 	PATH::reverse_iterator rit = path->rbegin();
 	return (*rit).first;
+}
+
+/**get the path end CGRANode
+ */
+CGRANode* Mapper::getPathEndCGRANode(PATH* path){
+	PATH::reverse_iterator rit = path->rbegin();
+	return (*rit).second;
 }
 
 Mapper::~Mapper(){

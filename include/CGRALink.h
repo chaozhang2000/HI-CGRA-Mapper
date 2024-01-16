@@ -30,8 +30,14 @@ class CGRALink
 		 */
 		void connect(CGRANode* t_src, CGRANode* t_dst);
 
-		int getID(){return m_id;}
-		CGRANode* getsrc(){return m_src;}
-		CGRANode* getdst(){return m_dst;}
+		/**return m_id
+		 */
+		int getID();
+		/**return m_src
+		 */
+		CGRANode* getsrc();
+		/**return m_dst
+		 */
+		CGRANode* getdst();
 };
 #endif

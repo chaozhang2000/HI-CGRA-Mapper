@@ -16,6 +16,8 @@ class CGRANode {
 		/**true main disable the CGRANode
 		 */
     bool m_disabled;
+		/**if this PE has a DataMem if it has DataMem, it can load or store.
+		 */
 		bool m_hasDataMem;
 		/**the list to record input CGRALinks of this CGRANode
 		 */
@@ -24,7 +26,7 @@ class CGRANode {
 		 */
     list <CGRALink*> m_outLinks;
 
-		/**the list to record all opname that this CGRANode is support
+		/**the set to record all opname that this CGRANode is support
 		 */
 		set<string> m_supportOpts;
 
@@ -35,7 +37,7 @@ class CGRANode {
   public:
 		/**The constructor function of class CGRANode
 		 * this function init CGRANode's ID,x and y according the params,other var is init by default value.
-		 * the function add,mul,shift and so on is turned on by default,but the load and store is turned off default
+		 * all opts like load store add,mul,shift and so on is turned on by default
 		 * @param t_id : the id of the CGRANode
 		 * @param t_x : the x of the CGRANode
 		 * @param t_y : the y of the CGRANode 
@@ -55,17 +57,32 @@ class CGRANode {
 
 
 		int getID();
-		int getx(){return m_x;};
-		int gety(){return m_y;};
-		bool hasDataMem(){return m_hasDataMem;};
-		bool isdisable(){return m_disabled;};
+		/**return m_x
+		 */
+		int getx();
+		/**return m_y
+		 */
+		int gety();
+		/**return m_hasDataMem
+		 */
+		bool hasDataMem();
+		/**return m_disabled
+		 */
+		bool isdisable();
 
 		/**judge if this CGRANode can support Opt which opcodeName is t_optsname
 		 * @param t_optsname: the name of the Opt
 		 */
 		bool canSupport(string t_optsname);
 
+		/**get the neighbors CGRANode of this Node
+		 * return m_neighbors,if m_neighbors == NULL will find neighbors first
+		 */
 		list<CGRANode*>* getNeighbors();
+
+		/**get the out CGRALink form this CGRANode to neighbor Node t_neighbor
+		 * if not found return NULL
+		 */
 		CGRALink* getOutLinkto(CGRANode* t_neighbor);
 };
 #endif

@@ -8,6 +8,15 @@ using namespace std;
 
 typedef map<int,CGRANode*> PATH;
 typedef list<map<int,CGRANode*>*> PATHS;
+
+/**The class to record the DFGNodeInst map result, cgra record which CGRANode the DFGNodeInst is mapped to ,and the cycle record which clock is mapped to.mapped record if the DFGNodeInst is mapped
+ */
+struct MapInfo{
+	CGRANode* cgraNode;
+	int cycle;
+	bool mapped;
+};
+
 class Mapper{
   private:
 		CGRA* m_cgra;
@@ -18,17 +27,13 @@ class Mapper{
 
 		int m_II;
 
-		/**The class to record the map info, cgra record which CGRANode the DFGNodeInst is mapped to ,and the cycle record which clock is mapped to.
+		/**used to record every DFGNodeInst's map result.
 		 */
-		class MapInfo{
-			public:
-				CGRANode* cgraNode;
-				int cycle;
-				bool mapped;
-		};
 		map<DFGNodeInst*,MapInfo*> m_mapInfo;
 
+		int getResMII();
 		void mapInfoInit();
+		void setmapInfo(CGRANode*,DFGNodeInst* t_InstNode,int t_cycle);
 		bool allPreInstNodeNotMapped(DFGNodeInst* t_InstNode);
 		bool allPreInstNodeMapped(DFGNodeInst* t_InstNode);
 		PATH* getMapPathforStartInstNode(DFGNodeInst* t_InstNode);
@@ -38,19 +43,25 @@ class Mapper{
 
 		PATH* getmaincostPath(PATHS* paths);
 
-		bool schedule(PATH* path,DFGNodeInst* t_InstNode,bool t_IncludeDstCGRANode);
+		void scheduleNodeInPath(PATH* path,DFGNodeInst* t_InstNode);
+		void scheduleLinkInPath(PATH* path,DFGNodeInst* t_InstNode);
 
 		int getPathEndCycle(PATH* path);
+		CGRANode* getPathEndCGRANode(PATH* path);
 		void dumpPath(PATH* path);
 
   public:
 		/**The constructor function of class MRRG 
+		 * will set m_cgra,m_dfg,m_mrrg,m_II,and apply space for MapInfos for each DFGNodeInst.put them in m_mapInfo
 		 */
 		Mapper(DFG*t_dfg,CGRA* t_cgra,MRRG* t_mrrg);
+
+		/** delete the MapInfo in m_mapInfo
+		 */
 		~Mapper();
 
-		int getResMII();
-
+		/** do heuristicMap
+		 */
 		void heuristicMap();
 };
 #endif

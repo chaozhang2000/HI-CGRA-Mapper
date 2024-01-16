@@ -25,6 +25,8 @@ enum {LINK_NOT_OCCUPY,
 				LINK_OCCUPY_FROM_E,
 				LINK_OCCUPY_FROM_FU};
 
+/**this struct is used to record the information of a CGRANode in MRRG
+ */
 struct NodeInfo{
 /** this var is used to record the CGRANode is occupyed by a DFGNode at certain cycle
 * m_OccupyedByNode = new DFGNodeInst*[cycle];
@@ -39,9 +41,14 @@ struct NodeInfo{
 		int *m_Src1OccupyState;
 		int *m_Src2OccupyState;
 
+/** record how many DFGInstNode has been mapped to this CGRANode
+* m_OccupyedByNode = new DFGNodeInst*[cycle];
+*/
 		int m_Mappednum;
 };
 
+/**this struct is used to record the information of a CGRALink in MRRG
+ */
 struct LinkInfo{
 /**record if the CGRALink is occpuied at a certain cycle,and it's occupied state
 * for example
@@ -51,19 +58,23 @@ struct LinkInfo{
 		int *m_occupied_state;
 };
 
-struct unSubmitNode{
+/**this struct is used to record the Possible but not yet submitted modification information for CGRANodes in MRRG
+ */
+struct unSubmitNodeInfo{
 	CGRANode* node;
 	int cycle;
 
 	DFGNodeInst* dfgNode;
 	int Src1OccupyState;
 	int Src2OccupyState;
-	bool add_Mappednum;
+	bool add_Mappednum;//when submit,if cause m_Mappednum in NodeInfo ++
 };
-struct unSubmitLink{
+
+/**this struct is used to record the Possible but not yet submitted modification information for CGRALink in MRRG
+ */
+struct unSubmitLinkInfo{
 	CGRALink* link;
 	int cycle;
-
 	int OccupyState;
 };
 
@@ -71,17 +82,19 @@ class MRRG {
   private:
 		CGRA* m_cgra;
 
+		/** record the cycle size of MRRG
+		 */
 		int m_cycles;
 
-		/** Used to save MRRG Data
+		/** Used to save MRRG Data,each CGRANode* will have a NodeInfo to record information,and each CGRALink* have a LinkInfo to record information
 		 */
 		map<CGRANode*,NodeInfo*> m_NodeInfos;
 		map<CGRALink*,LinkInfo*> m_LinkInfos;
 		
 		/** Used to save unsubmit Data
 		 */
-		list<unSubmitNode*> m_unSubmitNodes;
-		list<unSubmitLink*> m_unSubmitLinks;
+		list<unSubmitNodeInfo*> m_unSubmitNodeInfos;
+		list<unSubmitLinkInfo*> m_unSubmitLinkInfos;
 
   public:
 		/**The constructor function of class MRRG 
@@ -89,38 +102,46 @@ class MRRG {
 		MRRG(CGRA* t_cgra,int m_cycles);
 		~MRRG();
 
-		/**Clear the MRRG, init datas in it.
+		/**Clear the MRRG, init datas in it,init the m_LinkInfos,m_NodeInfos,and clearUnsubmit
 		 */
 		void MRRGclear();
+
+		/**free up space for unSubmitLinkInfo in m_unSubmitLinkInfos
+		 * clear the list m_unSubmitLinkInfos
+		 */
 		void clearUnsubmit();
 
-		int getMRRGcycles(){return m_cycles;}
+		/** return m_cycles
+		 */
+		int getMRRGcycles();
 
 		/**judge if the CGRANode in MRRG have space to map
 		 * if the m_Mappednum >= II, mean the CGRANode in MRRG don't have space to map
 		 */
 		bool haveSpaceforNode(CGRANode*t_cgraNode,int t_II);
 
-		/**judge if the cgraLink can be occupy in MRRG
+		/**judge if the t_cgraLink can be occupy in MRRG,during cycle t_cycle to t_cycle+t_duration,when II = t_II
 		 */
 		bool canOccupyLinkInMRRG(CGRALink* t_cgraLink,int t_cycle,int t_duration,int t_II);
-		/**judge if the cgraLink can be occupy in unsubmit CGRALinks
+		/**judge if the cgraLink can be occupy in unsubmit CGRALinks,during cycle t_cycle to t_cycle+t_duration,when II = t_II
 		 */
 		bool canOccupyLinkInUnSubmit(CGRALink* t_cgraLink,int t_cycle,int t_duration,int t_II);
-		/**judge if the cgraNode can be occupy in MRRG
+		/**judge if the cgraNode can be occupy in MRRG,during cycle t_cycle to t_cycle+t_duration,when II = t_II
 		 */
 		bool canOccupyNodeInMRRG(CGRANode* t_cgraNode,int t_cycle,int t_duration,int t_II);
 
-
-		/**schedule the CGRANode in the MRRG
+		/**schedule the CGRANode,new unSubmitNodeInfo* and push_back to m_unSubmitNodeInfos
+		 * call this function one time will cause one add_Mappednum in unSubmitNodeInfo be set true
+		 * if finally call submitschedule will cause add_Mappednum in NodeInfo ++, if the Mappednum of t_cgraNode >= II, the Mapper will not map any DFGNodeInst to t_cgraNode,so don't call this function for the same occupied in MRRG for more than one time.TODO:fix this 
 		 */
 		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II);
 
-		/**schedule the CGRALink in the MRRG
+		/**schedule the CGRALink,new unSubmitLinkInfo* and push_back to m_unSubmitLinkInfos
 		 */
 		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II);
 
-		/**submit the change to MRRG
+		/** submit the unsubmitInfo to the MRRG(m_NodeInfos and m_LinkInfos)
+		 * then clearUnsubmit
 		 */
 		void submitschedule();
 };

@@ -6,6 +6,7 @@
 #define LOAD_STORE_OPTS(f)\
 				f(load) f(store)
 #define M_SUPPORTOPTS_INSERT(k) m_supportOpts.insert(#k);
+
 CGRANode::CGRANode(int t_id, int t_x, int t_y) {
   m_id = t_id;
   m_disabled = false;
@@ -21,6 +22,18 @@ CGRANode::CGRANode(int t_id, int t_x, int t_y) {
 
 int CGRANode::getID(){
 	return m_id;
+}
+int CGRANode::getx(){
+	return m_x;
+}
+int CGRANode::gety(){
+	return m_y;
+}
+bool CGRANode::hasDataMem(){
+	return m_hasDataMem;
+}
+bool CGRANode::isdisable(){
+	return m_disabled;
 }
 void CGRANode::attachInLink(CGRALink* t_link) {
   m_inLinks.push_back(t_link);

@@ -1,10 +1,14 @@
 #include "MRRG.h"
 #include <cassert>
 
+/**what is in this function:
+ * 1. Apply space and init data for LinkInfos 
+ * 2. Apply space and init data for NodeInfos 
+ */
 MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 	m_cgra = t_cgra;
 	m_cycles = t_cycles;
-	//Apply space and init data for LinkInfos
+	//1. Apply space and init data for LinkInfos
 	for(int i=0;i<m_cgra->getLinkCount();i++){
 		m_LinkInfos[m_cgra->links[i]] = new LinkInfo;
 		m_LinkInfos[m_cgra->links[i]]->m_occupied_state = new int[m_cycles];
@@ -12,6 +16,7 @@ MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 			m_LinkInfos[m_cgra->links[i]]->m_occupied_state[c] = LINK_NOT_OCCUPY;
 		}
 	}	
+  //2. Apply space and init data for NodeInfos 
   for (int i=0; i<m_cgra->getrows(); ++i) {
     for (int j=0; j<m_cgra->getcolumns(); ++j) {
     	m_NodeInfos[m_cgra->nodes[i][j]]=new NodeInfo;
@@ -28,11 +33,18 @@ MRRG::MRRG(CGRA*t_cgra, int t_cycles){
   }
 }
 
+/**what is in this function:
+ * 1. delete m_LinkInfos 
+ * 2. delete m_NodeInfos 
+ * 3. delete m_unsubmitlink and m_unsubmitnode
+ */
 MRRG::~MRRG(){
+  //1. delete m_LinkInfos 
 	for(int i=0;i<m_cgra->getLinkCount();i++){
 		delete[] m_LinkInfos[m_cgra->links[i]]->m_occupied_state;
 		delete m_LinkInfos[m_cgra->links[i]];
 	}	
+  //2. delete m_NodeInfos 
   for (int i=0; i<m_cgra->getrows(); ++i) {
     for (int j=0; j<m_cgra->getcolumns(); ++j) {
 			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_OccupiedByNode;
@@ -41,10 +53,11 @@ MRRG::~MRRG(){
     	delete m_NodeInfos[m_cgra->nodes[i][j]];
     }
   }
-	for(unSubmitLink* unsubmitlink: m_unSubmitLinks){
+  //3. delete m_unsubmitlink and m_unsubmitnode
+	for(unSubmitLinkInfo* unsubmitlink: m_unSubmitLinkInfos){
 		delete unsubmitlink;
 	}
-	for(unSubmitNode* unsubmitnode: m_unSubmitNodes){
+	for(unSubmitNodeInfo* unsubmitnode: m_unSubmitNodeInfos){
 		delete unsubmitnode;
 	}
 }
@@ -69,14 +82,14 @@ void MRRG::MRRGclear(){
 }
 
 void MRRG::clearUnsubmit(){
-	for(unSubmitLink* unsubmitlink: m_unSubmitLinks){
+	for(unSubmitLinkInfo* unsubmitlink: m_unSubmitLinkInfos){
 		delete unsubmitlink;
 	}
-	for(unSubmitNode* unsubmitnode: m_unSubmitNodes){
+	for(unSubmitNodeInfo* unsubmitnode: m_unSubmitNodeInfos){
 		delete unsubmitnode;
 	}
-	m_unSubmitNodes.clear();
-	m_unSubmitLinks.clear();
+	m_unSubmitNodeInfos.clear();
+	m_unSubmitLinkInfos.clear();
 }
 
 bool MRRG::canOccupyLinkInMRRG(CGRALink* t_cgraLink,int t_cycle,int t_duration,int t_II){
@@ -91,7 +104,7 @@ bool MRRG::canOccupyLinkInMRRG(CGRALink* t_cgraLink,int t_cycle,int t_duration,i
 }
 
 bool MRRG::canOccupyLinkInUnSubmit(CGRALink* t_cgraLink,int t_cycle,int t_duration,int t_II){
-	for(unSubmitLink* unsubmitlink: m_unSubmitLinks){
+	for(unSubmitLinkInfo* unsubmitlink: m_unSubmitLinkInfos){
 		if(unsubmitlink->link == t_cgraLink){
 			for(int d = 0; d<t_duration; d++){
 				if(unsubmitlink->cycle >= t_cycle+d and (unsubmitlink->cycle - t_cycle-d)%t_II == 0 and 
@@ -124,7 +137,7 @@ void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,
 	bool firsttime= true;
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
 		for(int d =0;d<duration and c+d < m_cycles;d++){
-			unSubmitNode* unsubmitnode = new unSubmitNode;
+			unSubmitNodeInfo* unsubmitnode = new unSubmitNodeInfo;
 			unsubmitnode->node = t_cgraNode;
 			unsubmitnode->cycle = c+d;
 			unsubmitnode->dfgNode = t_dfgNode;
@@ -133,7 +146,7 @@ void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,
 				unsubmitnode->add_Mappednum = true;
 				firsttime= false;
 			}
-			m_unSubmitNodes.push_back(unsubmitnode);
+			m_unSubmitNodeInfos.push_back(unsubmitnode);
 		}
 	}
 }
@@ -143,17 +156,17 @@ void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,
 void MRRG::scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II){
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
 		for(int d = 0;d<duration and c+d < m_cycles;d++){
-			unSubmitLink* unsubmitlink = new unSubmitLink;
+			unSubmitLinkInfo* unsubmitlink = new unSubmitLinkInfo;
 			unsubmitlink-> link = t_cgraLink;
 			unsubmitlink-> cycle = c+d;
 			unsubmitlink-> OccupyState = LINK_OCCUPY_FROM_N;
-			m_unSubmitLinks.push_back(unsubmitlink);
+			m_unSubmitLinkInfos.push_back(unsubmitlink);
 		}
 	}
 }
 
 void MRRG::submitschedule(){
-	for(unSubmitNode* unsubmitnode: m_unSubmitNodes){
+	for(unSubmitNodeInfo* unsubmitnode: m_unSubmitNodeInfos){
 		CGRANode* node = unsubmitnode->node;
 		int cycle = unsubmitnode->cycle;
 		if(m_NodeInfos[node]->m_OccupiedByNode[cycle]!= NULL){
@@ -164,7 +177,7 @@ void MRRG::submitschedule(){
 			if(unsubmitnode->add_Mappednum)m_NodeInfos[node]->m_Mappednum++;
 		}
 	}
-	for(unSubmitLink* unsubmitlink: m_unSubmitLinks){
+	for(unSubmitLinkInfo* unsubmitlink: m_unSubmitLinkInfos){
 		CGRALink* link = unsubmitlink->link;
 		int cycle = unsubmitlink->cycle;
 		if(m_LinkInfos[link]->m_occupied_state[cycle]!=LINK_NOT_OCCUPY){
@@ -175,4 +188,8 @@ void MRRG::submitschedule(){
 		}
 	}
 	clearUnsubmit();
+}
+
+int MRRG::getMRRGcycles(){
+	return m_cycles;
 }

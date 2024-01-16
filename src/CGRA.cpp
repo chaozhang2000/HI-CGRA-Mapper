@@ -5,18 +5,19 @@
 using namespace llvm;
 using namespace std;
 /**
+ * TODO: now the cgra is connect in a specific way,and every Node can support all opts, the conection and the opts should be defined by users.
  * What is in this Function:
- * 1. init some var,like m_rows、m_columns、m_FUCount and so on.
- * 2. init the CGRANode and CGRALink according to default value.
- * 3. connect the CGRANode and CGRALink to Generate the CGRA.
+ * 1. init some var,like m_rows、m_columns、m_FUCount and so on,new nodes and links.
+ * 2. connect the CGRANode and CGRALink to Generate the CGRA.
+ * 3. print CGRA information if needed.
  */
 CGRA::CGRA(int t_rows,int t_columns){
 	
+ 	//1. init some var,like m_rows、m_columns、m_FUCount and so on,new nodes and links.
   m_rows = t_rows;
   m_columns = t_columns;
   m_FUCount = t_rows * t_columns;
   nodes = new CGRANode**[t_rows];
-
   int node_id = 0;
   for (int i=0; i<t_rows; ++i) {
   	nodes[i] = new CGRANode*[t_columns];
@@ -24,12 +25,10 @@ CGRA::CGRA(int t_rows,int t_columns){
     	nodes[i][j] = new CGRANode(node_id++, j, i);
     }
   }
-		//这里LinkCount的数量不再是由paramCGRA中来读取，而是采用下面的方式来进行计算，可以发现，这是一种默认的链接方式。
-		//这是一种这样的连接方式:每个node的上下左右都双向连接，除了最外围的一圈只往里面连接
   m_LinkCount = 2 * (t_rows * (t_columns-1) + (t_rows-1) * t_columns);
   links = new CGRALink*[m_LinkCount];
 
-    // Connect the CGRA nodes with links.
+  //2. connect the CGRANode and CGRALink to Generate the CGRA.
   int link_id = 0;
   for (int i=0; i<t_rows; ++i) {
   	for (int j=0; j<t_columns; ++j) {
@@ -67,6 +66,7 @@ CGRA::CGRA(int t_rows,int t_columns){
 			}
     }
   }
+ 	//3. print CGRA information if needed.
 #ifdef CONFIG_CGRA_DEBUG
 	//dump CGRA
   OUTS("\nCGRA DEBUG",ANSI_FG_BLUE);
@@ -92,12 +92,27 @@ CGRA::CGRA(int t_rows,int t_columns){
 #endif
 }
 
-CGRALink* CGRA::getEdgefrom(CGRANode* t_src,CGRANode* t_dst){
+int CGRA::getNodeCount(){
+	return m_FUCount;
+}
+
+int CGRA::getLinkCount(){
+	return m_LinkCount;
+}
+
+int CGRA::getrows(){
+	return m_rows;
+}
+
+int CGRA::getcolumns(){
+	return m_columns;
+}
+
+CGRALink* CGRA::getLinkfrom(CGRANode* t_src,CGRANode* t_dst){
 	for(int i = 0;i<m_LinkCount;i++){
 		if(links[i]->getsrc()== t_src and links[i]->getdst() == t_dst)
 			return links[i];
 	}
-	assert("ERROR cannot find the CGRALink from srcCGRANode to dstCGRANode");
 	return NULL;
 }
 
