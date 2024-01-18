@@ -74,7 +74,10 @@ void Mapper::heuristicMap(){
 					for(PATH* path:*paths){
 						scheduleLinkInPath(path);
 					}
-					scheduleDstNodeInPath(paths->front(),*InstNode,SRC_NOT_OCCUPY,SRC_NOT_OCCUPY);
+					int src1state = SRC_NOT_OCCUPY;
+					int src2state = SRC_NOT_OCCUPY;
+					getSrcStateOfNode(paths,*InstNode,&src1state,&src2state);
+					scheduleDstNodeInPath(paths->front(),*InstNode,src1state,src2state);
 					m_mrrg->submitschedule();
 					setmapInfo(getPathEndCGRANode(paths->front()),*InstNode,getPathEndCycle(paths->front()));
 					for(PATH* path: *paths){delete path;}
@@ -98,6 +101,10 @@ void Mapper::heuristicMap(){
 	else IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping failed with II = "<<m_II<<"\n");	
 }
 
+/**this funciton set src1occupystate and src2occupystate for a Start DFGNode.
+ * fu's src may come from two place
+ * 1.Loopreg,2.const mem
+ */
 void Mapper::getSrcStateOfStartNode(DFGNodeInst* InstNode,int* src1state,int *src2state){
 	for (DFGEdge* edge: *(InstNode->getInEdges())){
 		int srcID = edge->getsrcID();
@@ -109,6 +116,51 @@ void Mapper::getSrcStateOfStartNode(DFGNodeInst* InstNode,int* src1state,int *sr
 		if(srcID == 1) *src2state = state;
 	}
 }
+
+/**this funciton set src1occupystate and src2occupystate for a DFGNode which have one or two preInstNode.
+ * fu's src may come form four place
+ * 1.Loopreg,2.const mem.3.input CGRALink,4.fu reg
+ */
+void Mapper::getSrcStateOfNode(PATHS* paths,DFGNodeInst* InstNode,int* src1state,int *src2state){
+	for (DFGEdge* edge: *(InstNode->getInEdges())){
+		int srcID = edge->getsrcID();
+		int state = SRC_OCCUPY_FROM_CONST_MEM;
+		if(DFGNodeParam* param_node = dynamic_cast<DFGNodeParam*>(edge->getSrc())){
+			if(param_node->isloop())state = m_mrrg->srcOccupyLoopMap[param_node->getloopID()];
+		}else if(DFGNodeInst* Inst_node = dynamic_cast<DFGNodeInst*>(edge->getSrc())){
+			for(PATH* path: *(paths)){
+				if((*(path->begin())).second!= m_mapInfo[Inst_node]->cgraNode) continue;
+
+				bool fromfu = true;
+				PATH::iterator it = path->begin();
+				CGRANode* precgraNode = (*it).second ;
+				for(it = path->begin();it != path->end();it++){
+					if((*it).second != precgraNode){
+						fromfu = false;break;
+					}
+					precgraNode = (*it).second;
+				}
+				if(fromfu){state = SRC_OCCUPY_FROM_FU; break;}
+
+				PATH::reverse_iterator rit = path->rbegin();
+				precgraNode = (*rit).second;
+				CGRALink* link = NULL;
+				for(rit = path->rbegin();rit != path->rend();rit++){
+					if((*rit).second != precgraNode){
+						link = m_cgra->getLinkfrom( (*rit).second,precgraNode);
+						break;
+					}
+					precgraNode = (*rit).second;
+				}
+				state = m_mrrg->srcOccupyDirectionMap[link->getdirection()];
+			}
+		}
+		if(srcID == 0) *src1state = state;
+		if(srcID == 1) *src2state = state;
+	}
+	outs()<<"src1state: "<<*src1state<<" src2state: "<<*src2state<<"\n";
+}
+
 /**this funciton judge if the all PreInstNode of t_InstNode is not mapped
  */
 bool Mapper::allPreInstNodeNotMapped(DFGNodeInst* t_InstNode){
