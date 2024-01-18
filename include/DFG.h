@@ -32,11 +32,11 @@ class DFG {
 		 */
     list<DFGNodeParam*> m_ParamNodes;
 
-    void construct(Function&);
+    void construct(Function&,int t_loopargnum);
     void showOpcodeDistribution();
     void connectDFGNodes();
-    DFGEdge* getDFGEdge(DFGNode* t_src, DFGNode* t_dst);
-    bool hasDFGEdge(DFGNode* t_src, DFGNode* t_dst);
+    //DFGEdge* getDFGEdge(DFGNode* t_src, DFGNode* t_dst);
+    //bool hasDFGEdge(DFGNode* t_src, DFGNode* t_dst);
 		void reorderInstNodes();
 		void DFS_findlongest(list<DFGNodeInst*>* t_longestPath);
 		void reorderDFS(set<DFGNodeInst*>* t_visited, list<DFGNodeInst*>* t_targetPath,
@@ -47,6 +47,8 @@ class DFG {
     bool shouldIgnore(Instruction*);
     string changeIns2Str(Instruction* ins);
 		DFGNodeInst* getInstNode(Instruction* t_inst);
+		DFGNodeConst* getConstNode(ConstantData* t_const);
+		DFGNodeParam* getParamNode(Argument* t_param);
 		DFGEdge* getEdgefrom(DFGNodeInst* t_src,DFGNodeInst* t_dst);
 
   public:
@@ -57,8 +59,9 @@ class DFG {
 
 		/**The constructor function of class DFG
 		 * @param t_F the function processed by functionpass
+		 * @param t_loopparamnum the num of arg i,j,k...
 		 */
-		DFG(Function& t_F);
+		DFG(Function& t_F,int t_loopargnum);
 
 		/**The destructor function of class DFG
 		 */

@@ -11,6 +11,9 @@ class DFGEdge
 		/**The var to record DFGEdge ID 
 		 */
     int m_id;
+		/**The var to record this DFGEdge mean which src,src1 or src2
+		 */
+    int m_srcID;
 		/**The var to record src DFGNode,the edge points from src DFGNode to dst DFGNode
 		 */
     DFGNode *m_src;
@@ -24,14 +27,19 @@ class DFGEdge
 		/**The constructor function of class DFGEdge
 		 * assign value to m_id,m_src and m_dst to create a Edge from src DFGNode to dst DFGNode
 		 * @param t_id the id of the DFGEdge created
+		 * @param t_srcID which number of operands
 		 * @param t_src pointer to the src DFGNode 
 		 * @param t_dst pointer to the dst DFGNode
 		 */
-    DFGEdge(int t_id, DFGNode* t_src, DFGNode* t_dst);
+    DFGEdge(int t_id, int t_srcID, DFGNode* t_src, DFGNode* t_dst);
 
 		/**return m_id
 		 */
     int getID();
+
+		/**return m_srcID
+		 */
+    int getsrcID();
 
 		/**return m_src
 		 */

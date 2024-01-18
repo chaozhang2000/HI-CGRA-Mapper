@@ -6,19 +6,19 @@
 #include <map>
 using namespace std;
 
-enum {SRC_NOT_OCCUPY,
+enum {  SRC_NOT_OCCUPY,
+				SRC_OCCUPY_FROM_FU,
+				SRC_OCCUPY_FROM_CONST_MEM,
 				SRC_OCCUPY_FROM_N, 
 				SRC_OCCUPY_FROM_S,
 				SRC_OCCUPY_FROM_W,
 				SRC_OCCUPY_FROM_E,
-				SRC_OCCUPY_FROM_FU,
-				SRC_OCCUPY_FROM_CONST_MEM,
 				SRC_OCCUPY_FROM_LOOP0,
 				SRC_OCCUPY_FROM_LOOP1,
 				SRC_OCCUPY_FROM_LOOP2};
 
-enum {LINK_NOT_OCCUPY,
-				LINK_OCCUPY_WAIT,
+enum {  LINK_NOT_OCCUPY,
+				LINK_OCCUPY_EMPTY,
 				LINK_OCCUPY_FROM_N, 
 				LINK_OCCUPY_FROM_S,
 				LINK_OCCUPY_FROM_W,
@@ -28,10 +28,14 @@ enum {LINK_NOT_OCCUPY,
 /**this struct is used to record the information of a CGRANode in MRRG
  */
 struct NodeInfo{
-/** this var is used to record the CGRANode is occupyed by a DFGNode at certain cycle
+/** this var is used to record the CGRANode is occupyed by which DFGNode at certain cycle
 * m_OccupyedByNode = new DFGNodeInst*[cycle];
 */
 		DFGNodeInst** m_OccupiedByNode;
+/** this var is used to record the CGRANode is occupyed or not at certain cycle.
+ * if the m_occupied == true and m_OccupyedByNode ==NULL,mean this Node is occupied by empty Inst(data delay in fu reg)
+ */
+		bool * m_occupied;
 
 /**record if the Src1 or Src2 input mux is occpuied at a certain cycle,and it's occupied state
 * for example
@@ -102,6 +106,21 @@ class MRRG {
 		MRRG(CGRA* t_cgra,int m_cycles);
 		~MRRG();
 
+		/** Used to map the LINK_DIRECTION to LINK_OCCUPY_FROM_
+		 * now [4] is enough
+		 */
+		int linkOccupyDirectionMap[4];
+
+		/** Used to map the LINK_DIRECTION to SRC_OCCUPY_FROM_
+		 * now [4] is enough
+		 */
+		int srcOccupyDirectionMap[4];
+
+		/** Used to map the loopID to SRC_OCCUPY_FROM_LOOP_
+		 * now [3] is enough
+		 */
+		int srcOccupyLoopMap[3];
+
 		/**Clear the MRRG, init datas in it,init the m_LinkInfos,m_NodeInfos,and clearUnsubmit
 		 */
 		void MRRGclear();
@@ -134,11 +153,11 @@ class MRRG {
 		 * call this function one time will cause one add_Mappednum in unSubmitNodeInfo be set true
 		 * if finally call submitschedule will cause add_Mappednum in NodeInfo ++, if the Mappednum of t_cgraNode >= II, the Mapper will not map any DFGNodeInst to t_cgraNode,so don't call this function for the same occupied in MRRG for more than one time.TODO:fix this 
 		 */
-		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II);
+		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState);
 
 		/**schedule the CGRALink,new unSubmitLinkInfo* and push_back to m_unSubmitLinkInfos
 		 */
-		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II);
+		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state);
 
 		/** submit the unsubmitInfo to the MRRG(m_NodeInfos and m_LinkInfos)
 		 * then clearUnsubmit

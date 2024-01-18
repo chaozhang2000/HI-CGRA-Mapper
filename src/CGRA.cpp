@@ -1,11 +1,29 @@
 #include "CGRA.h"
 #include "common.h"
-#include "cassert"
 
 using namespace llvm;
 using namespace std;
 /**
  * TODO: now the cgra is connect in a specific way,and every Node can support all opts, the conection and the opts should be defined by users.
+ *
+ * the default CGRA
+ * |---| |---| |---| |---|
+ * |	 | |	 | |	 | |	 | row3
+ * |---| |---| |---| |---|
+ *
+ * |---| |---| |---| |---|
+ * |	 | |	 | |	 | |	 | row2
+ * |---| |---| |---| |---|
+ *
+ * |---| |---| |---| |---|
+ * | 4 | |...| |	 | |	 | row1   ^ y
+ * |---| |---| |---| |---|        |
+ *                                |
+ * |---| |---| |---| |---|        |
+ * | 0 | | 1 | | 2 | | 3 | row0		|
+ * |---| |---| |---| |---|        |
+ * col0  col1  col2  col3					|
+ * --------------------------------> x
  * What is in this Function:
  * 1. init some var,like m_rows、m_columns、m_FUCount and so on,new nodes and links.
  * 2. connect the CGRANode and CGRALink to Generate the CGRA.
@@ -32,33 +50,33 @@ CGRA::CGRA(int t_rows,int t_columns){
   int link_id = 0;
   for (int i=0; i<t_rows; ++i) {
   	for (int j=0; j<t_columns; ++j) {
-			//right
+			//to N
 			if (i < t_rows - 1) {
-      	links[link_id] = new CGRALink(link_id);
+      	links[link_id] = new CGRALink(link_id,LINK_DIRECTION_TO_N);
         nodes[i][j]->attachOutLink(links[link_id]);
         nodes[i+1][j]->attachInLink(links[link_id]);
         links[link_id]->connect(nodes[i][j], nodes[i+1][j]);
         ++link_id;
 			}
-			//left
+			//to S
       if (i > 0) {
-      	links[link_id] = new CGRALink(link_id);
+      	links[link_id] = new CGRALink(link_id,LINK_DIRECTION_TO_S);
         nodes[i][j]->attachOutLink(links[link_id]);
         nodes[i-1][j]->attachInLink(links[link_id]);
         links[link_id]->connect(nodes[i][j], nodes[i-1][j]);
         ++link_id;
       }
-			//down
+			//to E
       if (j < t_columns - 1) {
-        links[link_id] = new CGRALink(link_id);
+        links[link_id] = new CGRALink(link_id,LINK_DIRECTION_TO_E);
         nodes[i][j]->attachOutLink(links[link_id]);
         nodes[i][j+1]->attachInLink(links[link_id]);
         links[link_id]->connect(nodes[i][j], nodes[i][j+1]);
         ++link_id;
       }
-			//up
+			//to W
       if (j > 0) {
-        links[link_id] = new CGRALink(link_id);
+        links[link_id] = new CGRALink(link_id,LINK_DIRECTION_TO_W);
         nodes[i][j]->attachOutLink(links[link_id]);
         nodes[i][j-1]->attachInLink(links[link_id]);
         links[link_id]->connect(nodes[i][j], nodes[i][j-1]);
@@ -87,7 +105,7 @@ CGRA::CGRA(int t_rows,int t_columns){
     }
   }
 	for (int i=0; i<m_LinkCount;i++){
-		outs()<<"Link"<<links[i]->getID()<<":from Node"<<links[i]->getsrc()->getID()<<"->Node"<<links[i]->getdst()->getID()<<"\n";
+		outs()<<"Link"<<links[i]->getID()<<":from Node"<<links[i]->getsrc()->getID()<<"->Node"<<links[i]->getdst()->getID()<<" direction:"<<links[i]->getdirection()<<"\n";
 	}
 #endif
 }

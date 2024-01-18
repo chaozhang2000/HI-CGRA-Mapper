@@ -37,14 +37,15 @@ class Mapper{
 		bool allPreInstNodeNotMapped(DFGNodeInst* t_InstNode);
 		bool allPreInstNodeMapped(DFGNodeInst* t_InstNode);
 		PATH* getMapPathforStartInstNode(DFGNodeInst* t_InstNode);
+		void getSrcStateOfStartNode(DFGNodeInst* InstNode,int* src1state,int *src2state);
 		PATHS* getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode);
 		PATH* getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle,bool isroute);
 		bool canDelayInCGRANodeatCycle(CGRANode* cgraNode,int cycle,map<pair<CGRANode*,int>,pair<CGRANode*,int>>* MRRGpath);
 
 		PATH* getmaincostPath(PATHS* paths);
 
-		void scheduleNodeInPath(PATH* path,DFGNodeInst* t_InstNode);
-		void scheduleLinkInPath(PATH* path,DFGNodeInst* t_InstNode);
+		void scheduleDstNodeInPath(PATH* path,DFGNodeInst* t_InstNode,int src1_state,int src2_state);
+		void scheduleLinkInPath(PATH* path);
 
 		int getPathEndCycle(PATH* path);
 		CGRANode* getPathEndCGRANode(PATH* path);

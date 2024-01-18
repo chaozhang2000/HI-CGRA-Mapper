@@ -3,7 +3,6 @@
 #include <fstream>
 #include "common.h"
 #include <limits>
-#include <cassert>
 
 using namespace std;
 /**
@@ -11,9 +10,9 @@ using namespace std;
  * 1. init some var
  * 2. use construct() function to construct DFG
  */
-DFG::DFG(Function& t_F) {
+DFG::DFG(Function& t_F,int t_loopargnum) {
 	DFG_error = false;
-  construct(t_F);
+  construct(t_F,t_loopargnum);
 }
 
 /**
@@ -52,13 +51,12 @@ bool DFG::shouldIgnore(Instruction* t_inst) {
 	* what is in his function
 	* 1. Clear the data structions which is used to save nodes and edges
 	* 2. make sure there has only one basic block in target function,and every inst has less than two operands
-	* 3. create DFGNode for all inst
+	* 3. create DFGNode for all inst,const,and function argument
 	* 4. create DFGEdge
 	* 5. connect all DFGNode to generate the DFG,and reorder the DFGNode and give every node a level.
   * 6. print some information,if debug print is enable.
  */
-void DFG::construct(Function& t_F) {
-
+void DFG::construct(Function& t_F,int t_loopargnum) {
 	//1.Clear the data structions which is used to save nodes and edges
   m_DFGEdges.clear();
   m_InstNodes.clear();
@@ -84,6 +82,7 @@ void DFG::construct(Function& t_F) {
 	OUTS("\nDFG DEBUG",ANSI_FG_BLUE); 
 	OUTS("==================================",ANSI_FG_CYAN); 
   OUTS("[constructing DFG of target function: "<< t_F.getName().str()<<"]",ANSI_FG_CYAN););
+	//3.1 InstNode
   for (BasicBlock::iterator II=t_F.begin()->begin(),IEnd=t_F.begin()->end(); II!=IEnd; ++II) {
     Instruction* curII = &*II;
     // Ignore this IR if it is ret.
@@ -96,53 +95,74 @@ void DFG::construct(Function& t_F) {
 
 		IFDEF(CONFIG_DFG_DEBUG,outs()<< *curII<<" -> (dfgNode ID: "<<dfgNodeInst->getID()<<")\n");
   }
+	//3.2 const nodes
+  for (BasicBlock::iterator II=t_F.begin()->begin(),IEnd=t_F.begin()->end(); II!=IEnd; ++II) {
+    Instruction* curII = &*II;
+    for (Instruction::op_iterator op = curII->op_begin(), opEnd = curII->op_end(); op != opEnd; ++op) {
+			if(ConstantData* const_data = dyn_cast<ConstantData>(*op)){
+				if(getConstNode(const_data) == NULL){
+					ConstantInt * const_int = dyn_cast<ConstantInt>(*op);
+					if (const_int==NULL){
+						DFG_ERR("The Inst's const is not Int, not support yet!\n"<<changeIns2Str(curII));
+					}
+					string name;
+					raw_string_ostream stream(name);
+					stream << *const_int;
+					DFGNodeConst* constNode = new DFGNodeConst(nodeID++,const_data,stream.str());
+					m_ConstNodes.push_back(constNode);
+					IFDEF(CONFIG_DFG_DEBUG,outs()<< *const_data<<" -> (dfgNode ID: "<<constNode->getID()<<")\n");
+				}
+			}
+  	}
+	}
+	//3.2 param nodes
+	int loopargID = 0;
+	int argsize = t_F.arg_size();
+	for(Argument& arg : t_F.args()){
+		if(getParamNode(&arg) == NULL){
+			string name;
+			raw_string_ostream stream(name);
+			stream << arg;
+			bool isloop = (int)arg.getArgNo() >= argsize-t_loopargnum;
+			DFGNodeParam*	paramNode = new DFGNodeParam(nodeID++,&arg,stream.str(),isloop,isloop?loopargID:0);
+			if(isloop)loopargID++;
+			m_ParamNodes.push_back(paramNode);
+			IFDEF(CONFIG_DFG_DEBUG,outs()<< arg<<" -> (dfgNode ID: "<<paramNode->getID()<<")\n");
+		}
+	}
+
   //4.Construct data flow edges.
   for (DFGNodeInst* nodeInst: m_InstNodes) {
     Instruction* curII = nodeInst->getInst();
-        for (Instruction::op_iterator op = curII->op_begin(), opEnd = curII->op_end(); op != opEnd; ++op) {
-					//the operands comes from other inst, need to create DFGEdge
-          if (Instruction* tempInst = dyn_cast<Instruction>(*op)) {
-            DFGEdge* dfgEdge;
-              if (hasDFGEdge(getInstNode(tempInst), nodeInst))
-                dfgEdge = getDFGEdge(getInstNode(tempInst), nodeInst);
-              else {
-                dfgEdge = new DFGEdge(dfgEdgeID++, getInstNode(tempInst), nodeInst);
-                m_DFGEdges.push_back(dfgEdge);
-              }
-          } 
-					//if the operand is a const
-					else if(ConstantData* const_data = dyn_cast<ConstantData>(*op)){
-							ConstantInt * const_int = dyn_cast<ConstantInt>(*op);
-							if (const_int==NULL){
-							DFG_ERR("The Inst's const is not Int, not support yet!\n"<<changeIns2Str(curII));
-							}
-							string name;
-							raw_string_ostream stream(name);
-							stream << *const_int;
-							DFGNodeConst* constNode;
-							constNode = new DFGNodeConst(nodeID++,const_data,stream.str());
-							m_ConstNodes.push_back(constNode);
-            	DFGEdge* dfgEdge;
-               dfgEdge = new DFGEdge(dfgEdgeID++, constNode, nodeInst);
-               m_DFGEdges.push_back(dfgEdge);
-          } 
-					//if the operand is a param
-					else if (Argument* arg = dyn_cast<Argument>(op)){
-							string name;
-							raw_string_ostream stream(name);
-							stream << *arg;
-							DFGNodeParam* paramNode;
-							paramNode = new DFGNodeParam(nodeID++,arg,stream.str());
-							m_ParamNodes.push_back(paramNode);
-            	DFGEdge* dfgEdge;
-               dfgEdge = new DFGEdge(dfgEdgeID++, paramNode, nodeInst);
-               m_DFGEdges.push_back(dfgEdge);
-					}
-					else{
-							DFG_ERR("The Inst have unknow operand!\n"<<changeIns2Str(curII));
-					}
-        }
-					}
+		int opcnt = 0;
+    for (Instruction::op_iterator op = curII->op_begin(), opEnd = curII->op_end(); op != opEnd; ++op) {
+			//the operands comes from other inst, need to create DFGEdge
+			//if 
+    	if (Instruction* tempInst = dyn_cast<Instruction>(*op)) {
+      	DFGEdge* dfgEdge;
+        dfgEdge = new DFGEdge(dfgEdgeID++,opcnt,getInstNode(tempInst), nodeInst);
+        m_DFGEdges.push_back(dfgEdge);
+				opcnt ++;
+      } 
+			//if the operand is a const
+			else if(ConstantData* const_data = dyn_cast<ConstantData>(*op)){
+        DFGEdge* dfgEdge;
+        dfgEdge = new DFGEdge(dfgEdgeID++,opcnt,getConstNode(const_data), nodeInst);
+        m_DFGEdges.push_back(dfgEdge);
+				opcnt ++;
+      } 
+			//if the operand is a param
+			else if (Argument* arg = dyn_cast<Argument>(op)){
+        DFGEdge* dfgEdge;
+        dfgEdge = new DFGEdge(dfgEdgeID++,opcnt,getParamNode(arg), nodeInst);
+        m_DFGEdges.push_back(dfgEdge);
+				opcnt ++;
+			}
+			else{
+				DFG_ERR("The Inst have unknow operand!\n"<<changeIns2Str(curII));
+			}
+    }
+	}
 
 	//5. connectDFGNode and reorder.
   connectDFGNodes();
@@ -171,7 +191,7 @@ void DFG::reorderInstNodes(){
 		outs()<<"Node"<<InstNode->getID()<<" -> ";
 	}
 	outs()<<"end\n");
-	IFDEF(CONFIG_DEF_LONGEST,changeLongestPathColor(&longestPath,"orange"));
+	IFDEF(CONFIG_DFG_LONGEST,changeLongestPathColor(&longestPath,"orange"));
 
   //2.set level for nodes,first the nodes in longestPath,second other node;
 	set<DFGNodeInst*> havenotSetLevelNodes;
@@ -203,7 +223,7 @@ DFGEdge* DFG::getEdgefrom(DFGNodeInst* t_src,DFGNodeInst* t_dst){
 			return edge;
 		}
 	}
-	assert("ERROR cannot find the DFGEdge from src to dst");
+	llvm_unreachable("ERROR cannot find the DFGEdge from src to dst");
 	return NULL;
 }
 
@@ -313,7 +333,7 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 							havenotSetLevelNodes->erase(mostPredNodeHasLevel);
 			continue;
 		}else{
-						assert("ERROR has DFGNode which do not have INEdge and OutEdge");
+						llvm_unreachable("ERROR has DFGNode which do not have INEdge and OutEdge");
 			continue;
 		}
 	}
@@ -409,12 +429,16 @@ void DFG::generateDot(Function &t_F, bool t_isTrimmedDemo) {
 		}
   //Dump ParamDFG nodes.
   for (DFGNodeParam* node: m_ParamNodes) {
-      file << "\tNode" << node->getID() <<  "[shape=record,"<<"color="<<node->color<<",label=\"" << "(" << node->getID() << ") " << node->getName() << "\"];\n";
+      file << "\tNode" << node->getID() <<  "[shape=record,"<<"color="<<node->color<<",label=\"" << "(" << node->getID() << ") " << node->getName();
+		  if(node->isloop())	file << " loop:"<<node->getloopID()<<"\"];\n";
+			else	file <<"\"];\n";
 		}
   // Dump data flow.
   for (DFGEdge* edge: m_DFGEdges) {
     // Distinguish data and control flows. Make ctrl flow invisible.
-        file << "\tNode" << edge->getSrc()->getID() << " -> Node" << edge->getDst()->getID() << " [color="<< edge->getcolor()<<"]" << "\n";
+      file << "\tNode" << edge->getSrc()->getID() << " -> Node" << edge->getDst()->getID() << " [color="<< edge->getcolor();
+			IFDEF(CONFIG_DFG_SRC_ID,file<<",label="<<edge->getsrcID());
+			file <<"]" << "\n";
   }
   file << "}\n";
   file.close();
@@ -451,12 +475,36 @@ DFGNodeInst* DFG::getInstNode(Instruction* t_inst) {
       return node;
 					}
   }
-  assert("ERROR cannot find the corresponding DFG node.");
+  llvm_unreachable("ERROR cannot find the corresponding DFG node.");
   return NULL;
 }
 
+/**search the DFGNodeConst in m_ConstNodes using the ConstantData 
+ */
+DFGNodeConst* DFG::getConstNode(ConstantData* t_const) {
+  for (DFGNodeConst* node: m_ConstNodes) {
+					if(node->getConstant() == t_const){
+      return node;
+					}
+  }
+  return NULL;
+}
+
+/**search the DFGNodeParam in m_ParamNodes using the Argument 
+ */
+DFGNodeParam* DFG::getParamNode(Argument* t_param) {
+  for (DFGNodeParam* node: m_ParamNodes) {
+					if(node->getParam() == t_param){
+      return node;
+					}
+  }
+  return NULL;
+}
+
+
 /**Get the pointer of DFGEdge from t_src to t_dst DFGNode.The DFGEdge must be confirmed to have been created.You can use hasDFGEdge() to check this.
 */
+/*
 DFGEdge* DFG::getDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   for (DFGEdge* edge: m_DFGEdges) {
     if (edge->getSrc() == t_src and
@@ -465,13 +513,16 @@ DFGEdge* DFG::getDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
     }
 
   }
-  assert("ERROR cannot find the corresponding DFG edge.");
+  llvm_unreachable("ERROR cannot find the corresponding DFG edge.");
   return NULL;
 }
+*/
+
 
 /**Check if the DFGEdge from t_src to t_dst DFGNode has be created
  * @return true main the DFGEdge from t_src to t_dst is in m_DFGEdges,has been created in the past
  */
+/*
 bool DFG::hasDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   for (DFGEdge* edge: m_DFGEdges) {
     if (edge->getSrc() == t_src and
@@ -481,6 +532,7 @@ bool DFG::hasDFGEdge(DFGNode* t_src, DFGNode* t_dst) {
   }
   return false;
 }
+*/
 
 /** get inst's name return a string
  */

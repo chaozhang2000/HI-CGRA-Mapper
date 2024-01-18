@@ -37,6 +37,7 @@ namespace {
 
       // Read the target function from JSON file.
 			string target_function;
+			int loopargnum = 0;
       ifstream i("./param.json");
       if (!i.good()) {
 
@@ -48,15 +49,15 @@ namespace {
         json param;
         i >> param; 
 				target_function = param["kernel"];
+				loopargnum = param["loopargnum"];
       }
-
 
       // Check existance. if the function is our target function
       if (target_function!=t_F.getName().str()) {
         return false;
       }
 
-      DFG* dfg = new DFG(t_F);
+      DFG* dfg = new DFG(t_F,loopargnum);
 			if (dfg->DFG_error){
 				return false;
 			}
@@ -65,9 +66,8 @@ namespace {
 			bool isTrimmedDemo = true;
       dfg->generateDot(t_F, isTrimmedDemo);
 
-#ifdef CONFIG_MAP_EN
 			CGRA* cgra = new CGRA(4,4);
-
+#ifdef CONFIG_MAP_EN
 			MRRG* mrrg = new MRRG(cgra,200);
 
 			Mapper* mapper = new Mapper(dfg,cgra,mrrg);
@@ -76,8 +76,8 @@ namespace {
 
 			delete mapper;
 			delete mrrg;
-			delete cgra;
 #endif
+			delete cgra;
 			delete dfg;
 			return true;
     }
