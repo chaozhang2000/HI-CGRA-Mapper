@@ -550,3 +550,27 @@ int DFG::getInstNodeCount(){
 list<DFGNodeInst*>* DFG::getInstNodes(){
 	return &m_InstNodes;
 }
+
+void DFG::setConstraints(map<int,int>* constraintmap){
+	map<int,int>::iterator it;
+	int DFGNodeID = 0;
+	int CGRANodeID = 0;
+	bool find = false;
+	for(it = constraintmap->begin();it!=constraintmap->end();++it){
+		find = false;
+		DFGNodeID = it->first;
+		CGRANodeID = it->second;
+		for(DFGNodeInst* node: m_InstNodes){
+			if(node -> getID() == DFGNodeID){
+				find = true;
+				node -> setConstraint(CGRANodeID);
+			}
+		}
+		if(find == false)outs()<<"constraint exist but DFGNode not found,this constraint is ignored\n";
+	}
+	for(DFGNodeInst* node: m_InstNodes){
+		if(node -> isMemOpts() and !(node->hasConstraint())){
+			outs()<<"DFGNode" << node->getID()<<" have no Constraints\n";
+		}
+	}
+}

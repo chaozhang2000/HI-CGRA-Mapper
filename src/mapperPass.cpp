@@ -14,6 +14,7 @@ using namespace llvm;
 using namespace std;
 using json = nlohmann::json;
 
+bool getConstraint(map<int,int>* constraintmap);
 void addDefaultKernels(map<string, list<int>*>*);
 
 namespace {
@@ -56,9 +57,6 @@ namespace {
         return false;
       }
 
-			bool hasmapconstrantJson= false;
-      ifstream mapconstraint("./mapconstraint.json");
-			if(mapconstraint.good())hasmapconstrantJson= true;
 
       DFG* dfg = new DFG(t_F,loopargnum);
 			if (dfg->DFG_error){
@@ -68,22 +66,25 @@ namespace {
       // Generate the DFG dot file.
       dfg->generateDot(t_F);
 
-			/*the mapping need a mapconstraint.json to map all load store DFGNode ID to CGRANode ID, to tell the mapper,which mem the data save, now we assume every PE can access a data mem,if the mapconstraint.json not exsisted break,else read map info from the file*/
 			map<int,int>* constraintmap = new map<int,int>;//TODO: free this space
-      if (!hasmapconstrantJson) {
+
+			bool hasConstraintFile = false; 
+
+      /*get constraint form the file*/
+			hasConstraintFile = getConstraint(constraintmap);
+
+      /*set constraint in dfg*/
+			dfg->setConstraints(constraintmap);
+
+      /*Generate the DFG dot file.*/
+      dfg->generateDot(t_F);
+
+      /*don't have ConstrantFile,don't do map.*/
+			if(!hasConstraintFile) {
         outs()<< "=============================================================\n";
 				OUTS("Please provide a <mapconstraint.json> in the current directory.",ANSI_FG_RED);
         outs()<<"=============================================================\n";
 				return false;
-      }else{
-        json constraint;
-				mapconstraint >> constraint;
-				json maps = constraint["DFGNodeIDCGRANodeID"];
-				json map;
-				for(unsigned long i =0;i<maps.size();i++){
-					map = maps[i];
-					(*constraintmap)[map[0]] = map[1];
-				}
 			}
 
 			CGRA* cgra = new CGRA(4,4);
@@ -107,3 +108,23 @@ namespace {
 
 char mapperPass::ID = 0;
 static RegisterPass<mapperPass> X("mapperPass", "DFG Pass Analyse", false, false);
+
+bool getConstraint(map<int,int>* constraintmap){
+			bool hasmapconstrantJson= false;
+      ifstream mapconstraint("./mapconstraint.json");
+			if(mapconstraint.good())hasmapconstrantJson= true;
+
+      if (!hasmapconstrantJson) {
+				return false;
+      }else{
+        json constraint;
+				mapconstraint >> constraint;
+				json maps = constraint["DFGNodeIDCGRANodeID"];
+				json map;
+				for(unsigned long i =0;i<maps.size();i++){
+					map = maps[i];
+					(*constraintmap)[map[0]] = map[1];
+				}
+				return true;
+			}
+}

@@ -82,5 +82,10 @@ class DFG {
 		 * return the &m_InstNodes
 		 */
     list<DFGNodeInst*>* getInstNodes();
+
+		/**get the InstNodes
+		 * return the &m_InstNodes
+		 */
+    void setConstraints(map<int,int>* constraintmap);
 };
 #endif

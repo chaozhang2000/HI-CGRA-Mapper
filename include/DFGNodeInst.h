@@ -27,6 +27,16 @@ class DFGNodeInst:public DFGNode{
 		/**var to record if the DFGNodeInst have been set level
 		 */
 		bool m_haveSetLevel;
+		/**var to save if the InstNode is a memopts like load and store.
+		 */
+		bool m_isMemOpts;
+		/**var to save if the InstNode is constrainted to a CGRANode by the mapconstraint.json.
+		 */
+		bool m_constrainted;
+		/**the CGRANode ID which this DFGNodeInst is constrained to be mapped to.
+		 */
+		int m_constraintTo;
+
 	public:
 		static const string color;
 		/**The constructor function of class DFGNodeInst
@@ -63,5 +73,14 @@ class DFGNodeInst:public DFGNode{
 		/**return m_haveSetLevel;
 		 */
 		bool haveSetLevel();
+		/**return m_isMemOpts;
+		 */
+		bool isMemOpts();
+		/**return m_constrainted;
+		 */
+		bool hasConstraint();
+		/** set constraint,set m_constraintTo the value of CGRANodeID,and set m_constrainted true
+		 */
+		void setConstraint(int CGRANodeID);
 };
 #endif
