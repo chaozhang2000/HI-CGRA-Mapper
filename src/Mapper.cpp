@@ -130,6 +130,7 @@ void Mapper::getSrcStateOfNode(PATHS* paths,DFGNodeInst* InstNode,int* src1state
 		}else if(DFGNodeInst* Inst_node = dynamic_cast<DFGNodeInst*>(edge->getSrc())){
 			for(PATH* path: *(paths)){
 				if((*(path->begin())).second!= m_mapInfo[Inst_node]->cgraNode) continue;
+				if((*(path->begin())).first!= m_mapInfo[Inst_node]->cycle) continue;
 
 				bool fromfu = true;
 				PATH::iterator it = path->begin();
