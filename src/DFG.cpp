@@ -407,7 +407,7 @@ void DFG::connectDFGNodes() {
   }
 }
 
-void DFG::generateDot(Function &t_F, bool t_isTrimmedDemo) {
+void DFG::generateDot(Function &t_F) {
   error_code error;
 //  sys::fs::OpenFlags F_Excl;
   string func_name = t_F.getName().str();
