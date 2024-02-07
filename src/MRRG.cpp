@@ -69,12 +69,7 @@ MRRG::~MRRG(){
     }
   }
   //3. delete m_unsubmitlink and m_unsubmitnode
-	for(unSubmitLinkInfo* unsubmitlink: m_unSubmitLinkInfos){
-		delete unsubmitlink;
-	}
-	for(unSubmitNodeInfo* unsubmitnode: m_unSubmitNodeInfos){
-		delete unsubmitnode;
-	}
+	clearUnsubmit();
 }
 
 void MRRG::MRRGclear(){
@@ -106,6 +101,25 @@ void MRRG::clearUnsubmit(){
 	}
 	m_unSubmitNodeInfos.clear();
 	m_unSubmitLinkInfos.clear();
+}
+
+void MRRG::clearTempUnsubmit(){
+	for(auto it = m_unSubmitLinkInfos.begin();it != m_unSubmitLinkInfos.end();){
+		if((*it)->temp){
+			delete *it;
+			it = m_unSubmitLinkInfos.erase(it);
+		}else{
+			++ it;
+		}
+	}
+	for(auto it = m_unSubmitNodeInfos.begin();it != m_unSubmitNodeInfos.end();){
+		if((*it)->temp){
+			delete *it;
+			it = m_unSubmitNodeInfos.erase(it);
+		}else{
+			++ it;
+		}
+	}
 }
 
 bool MRRG::canOccupyLinkInMRRG(CGRALink* t_cgraLink,int t_cycle,int t_duration,int t_II){
@@ -149,7 +163,7 @@ bool MRRG::canOccupyNodeInMRRG(CGRANode* t_cgraNode,int t_cycle,int t_duration,i
 
 /**TODO: m_Src1OccupyState and m_Src2OccupyState not be handled yet
  */
-void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState){
+void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState,bool temp){
 	bool firsttime= true;
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
 		for(int d =0;d<duration and c+d < m_cycles;d++){
@@ -160,6 +174,7 @@ void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,
 			unsubmitnode->Src1OccupyState = t_Src1OccupyState;
 			unsubmitnode->Src2OccupyState = t_Src2OccupyState;
 			unsubmitnode->add_Mappednum = false;
+			unsubmitnode->temp = temp;
 			if(firsttime){
 				unsubmitnode->add_Mappednum = true;
 				firsttime= false;
@@ -169,13 +184,14 @@ void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,
 	}
 }
 
-void MRRG::scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state){
+void MRRG::scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state,bool temp){
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
 		for(int d = 0;d<duration and c+d < m_cycles;d++){
 			unSubmitLinkInfo* unsubmitlink = new unSubmitLinkInfo;
 			unsubmitlink-> link = t_cgraLink;
 			unsubmitlink-> cycle = c+d;
 			unsubmitlink-> OccupyState = occupy_state;
+			unsubmitlink-> temp = temp;
 			m_unSubmitLinkInfos.push_back(unsubmitlink);
 		}
 	}
@@ -187,6 +203,9 @@ void MRRG::submitschedule(){
 		int cycle = unsubmitnode->cycle;
 		if(m_NodeInfos[node]->m_occupied[cycle]==true){
 			llvm_unreachable("The CGRANode in path can't be schedule,this should not happen, the Mapper has some bugs");
+		}
+		else if(unsubmitnode->temp != false){
+			llvm_unreachable("the unsubmitnode->temp == true,this should not happen,the Mapper has some bugs");
 		}
 		else{
 			m_NodeInfos[node]->m_OccupiedByNode[cycle] = unsubmitnode->dfgNode;
@@ -202,6 +221,9 @@ void MRRG::submitschedule(){
 		if(m_LinkInfos[link]->m_occupied_state[cycle]!=LINK_NOT_OCCUPY){
 			outs()<<"Link"<<link->getID()<<":from Node"<<link->getsrc()->getID()<<"->Node"<<link->getdst()->getID()<<" direction:"<<link->getdirection()<<"have been occupyed by state "<<m_LinkInfos[link]->m_occupied_state[cycle]<<" at cycle "<<cycle<<"\n";
 			llvm_unreachable("The CGRALink in path can't be schedule,this should not happen, the Mapper has some bugs");
+		}
+		else if(unsubmitlink->temp != false){
+			llvm_unreachable("the unsubmitlink->temp == true,this should not happen,the Mapper has some bugs");
 		}
 		else{
 			m_LinkInfos[link]->m_occupied_state[cycle] = unsubmitlink->OccupyState;

@@ -72,6 +72,7 @@ struct unSubmitNodeInfo{
 	int Src1OccupyState;
 	int Src2OccupyState;
 	bool add_Mappednum;//when submit,if cause m_Mappednum in NodeInfo ++
+	bool temp;
 };
 
 /**this struct is used to record the Possible but not yet submitted modification information for CGRALink in MRRG
@@ -80,6 +81,7 @@ struct unSubmitLinkInfo{
 	CGRALink* link;
 	int cycle;
 	int OccupyState;
+	bool temp;
 };
 
 class MRRG {
@@ -130,6 +132,11 @@ class MRRG {
 		 */
 		void clearUnsubmit();
 
+		/**
+		 * clear the temp unsubmit link and node in list m_unSubmitLinkInfos and m_unSubmitNodeInfos
+		 */
+		void clearTempUnsubmit();
+
 		/** return m_cycles
 		 */
 		int getMRRGcycles();
@@ -153,11 +160,11 @@ class MRRG {
 		 * call this function one time will cause one add_Mappednum in unSubmitNodeInfo be set true
 		 * if finally call submitschedule will cause add_Mappednum in NodeInfo ++, if the Mappednum of t_cgraNode >= II, the Mapper will not map any DFGNodeInst to t_cgraNode,so don't call this function for the same occupied in MRRG for more than one time.TODO:fix this 
 		 */
-		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState);
+		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState,bool temp);
 
 		/**schedule the CGRALink,new unSubmitLinkInfo* and push_back to m_unSubmitLinkInfos
 		 */
-		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state);
+		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state,bool temp);
 
 		/** submit the unsubmitInfo to the MRRG(m_NodeInfos and m_LinkInfos)
 		 * then clearUnsubmit

@@ -76,6 +76,9 @@ class DFGNodeInst:public DFGNode{
 		/**return m_isMemOpts;
 		 */
 		bool isMemOpts();
+		/**return m_constraintTo;
+		 */
+		int constraintTo();
 		/**return m_constrainted;
 		 */
 		bool hasConstraint();

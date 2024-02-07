@@ -46,7 +46,7 @@ class Mapper{
 		PATH* getmaincostPath(PATHS* paths);
 
 		void scheduleDstNodeInPath(PATH* path,DFGNodeInst* t_InstNode,int src1_state,int src2_state);
-		void scheduleLinkInPath(PATH* path);
+		void scheduleLinkInPath(PATH* path,bool temp);
 
 		int getPathEndCycle(PATH* path);
 		CGRANode* getPathEndCGRANode(PATH* path);

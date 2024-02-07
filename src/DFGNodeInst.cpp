@@ -73,6 +73,9 @@ bool DFGNodeInst::isMemOpts(){
 bool DFGNodeInst::hasConstraint(){
 	return m_constrainted;
 }
+int DFGNodeInst::constraintTo(){
+	return m_constraintTo;
+}
 void DFGNodeInst::setConstraint(int CGRANodeID){
 	m_constrainted = true;
 	m_constraintTo = CGRANodeID;

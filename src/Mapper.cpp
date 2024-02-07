@@ -72,7 +72,7 @@ void Mapper::heuristicMap(){
 				PATHS* paths = getMapPathsFromPreToInstNode(*InstNode);
 				if(paths != NULL){
 					for(PATH* path:*paths){
-						scheduleLinkInPath(path);
+						scheduleLinkInPath(path,false);
 					}
 					int src1state = SRC_NOT_OCCUPY;
 					int src2state = SRC_NOT_OCCUPY;
@@ -197,6 +197,7 @@ PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
 		for(int c = 0; c< m_cgra->getcolumns();c++){
 			CGRANode* cgraNode = m_cgra->nodes[r][c];
 			if(cgraNode->canSupport(t_InstNode->getOpcodeName()) and cgraNode->isdisable()==false){
+				if(t_InstNode->hasConstraint() and (cgraNode->getID() != t_InstNode->constraintTo()))continue;
 				int cycle = 0;
 				PATH*path = NULL;
 				while(cycle <= m_mrrg->getMRRGcycles()/2){
@@ -244,8 +245,9 @@ PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
 		for(int c = 0; c< m_cgra->getcolumns();c++){
 			CGRANode* cgraNode = m_cgra->nodes[r][c];
 			if(cgraNode->canSupport(t_InstNode->getOpcodeName())and cgraNode->isdisable()==false ){
-				list<DFGNodeInst*>* preNodes = t_InstNode->getPredInstNodes();
+				if(t_InstNode->hasConstraint() and (cgraNode->getID() != t_InstNode->constraintTo()))continue;
 
+				list<DFGNodeInst*>* preNodes = t_InstNode->getPredInstNodes();
  				//2.if the t_InstNode have only one preNode, just find the path from it's preNode to this Node. only save the shortest path.
 				if(preNodes->size() == 1){
 					DFGNodeInst* preNode = preNodes->front();
@@ -279,7 +281,7 @@ PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
 							IFDEF(CONFIG_MAP_DEBUG_PATH,outs()<<"Try to find path for DFGNode"<<t_InstNode->getID()<<"(twoPreNode) from CGRANode"<< srccgraNode->getID() <<" to CGRANode"<< cgraNode->getID()<<" success!\n  Path:");
 							IFDEF(CONFIG_MAP_DEBUG_PATH,dumpPath(pathstartfrom[i]));
 
-							scheduleLinkInPath(pathstartfrom[i]);
+							scheduleLinkInPath(pathstartfrom[i],false);
 							DFGNodeInst* anotherpredfgNode = i == 1 ? *(preNodes->begin()):*(next(preNodes->begin(),1));
 							CGRANode* anotherSrccgraNode = m_mapInfo[anotherpredfgNode]->cgraNode;
 							int anotherSrccycle = m_mapInfo[anotherpredfgNode]->cycle;
@@ -372,14 +374,14 @@ PATH* Mapper::getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, 
 			(*frontpath)[preMRRGNode[node].second] = preMRRGNode[node].first;
 			node = preMRRGNode[node];
 		}
-		if(frontpath->size()>0) scheduleLinkInPath(frontpath);
+		if(frontpath->size()>0) scheduleLinkInPath(frontpath,true);
 
 		//Search
 		//consider to neighbor CGRANode at next cycle
 		for(CGRANode* neighbor : *(currentCGRANode->getNeighbors())){
 			CGRALink* linktoNeighbor = m_cgra->getLinkfrom(currentCGRANode,neighbor);
 			if(linktoNeighbor != NULL){
-				if(m_mrrg->canOccupyLinkInMRRG(linktoNeighbor,currentcycle,1,m_II)and m_mrrg->canOccupyLinkInUnSubmit(linktoNeighbor,currentcycle,1,m_II)){
+				if(m_mrrg->canOccupyLinkInMRRG(linktoNeighbor,currentcycle,1,m_II) and m_mrrg->canOccupyLinkInUnSubmit(linktoNeighbor,currentcycle,1,m_II)){
 					pair<CGRANode*,int> nextMRRGNode = make_pair(neighbor,currentcycle + 1);
 					preMRRGNode[nextMRRGNode] = currentMRRGNode;
 					q.push(nextMRRGNode);
@@ -393,7 +395,7 @@ PATH* Mapper::getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, 
 			q.push(nextMRRGNode);
 		}
 
-		m_mrrg->clearUnsubmit();
+		m_mrrg->clearTempUnsubmit();
 	}
 	//return the path
 	if(!success){
@@ -460,7 +462,7 @@ PATH* Mapper::getmaincostPath(PATHS* paths){
 void Mapper::scheduleDstNodeInPath(PATH* path,DFGNodeInst* t_InstNode,int src1_state,int src2_state){
 	PATH::reverse_iterator ri = path->rbegin();
 	CGRANode* dstCGRANode = (*ri).second;
-	m_mrrg->scheduleNode(dstCGRANode,t_InstNode,(*ri).first,1,m_II,src1_state,src2_state);
+	m_mrrg->scheduleNode(dstCGRANode,t_InstNode,(*ri).first,1,m_II,src1_state,src2_state,false);
 }
 
 /** this function try to schedule the links in path, it will call m_mrrg->scheduleLink function,to create unsubmit schedule information.
@@ -470,7 +472,7 @@ void Mapper::scheduleDstNodeInPath(PATH* path,DFGNodeInst* t_InstNode,int src1_s
  * @param t_InstNode: the dst DFGNodeInst at the end of path
  * @param path: the path 
  */
-void Mapper::scheduleLinkInPath(PATH* path){
+void Mapper::scheduleLinkInPath(PATH* path,bool temp){
 	PATH::iterator it = path->begin();
 	int cyclepre = 0;
 	int cyclecurrent = 0;
@@ -490,12 +492,12 @@ void Mapper::scheduleLinkInPath(PATH* path){
 			if(it != path->begin()){//the first node in path don't need process
 
 				if(cgraNodecurrent == cgraNodepre and srcNodeDelay){//handle the srcNode Delay
-					if(next(it,1) != path->end())m_mrrg->scheduleNode(cgraNodepre,NULL,cyclecurrent,1,m_II,SRC_NOT_OCCUPY,SRC_NOT_OCCUPY); //if(next(it,1) != path->end()) to avoid the situation the all CGRANode in path is the same ,for example CGRANode0(0)->CGRANode0(1).avoid it's end Node is scheduled for more than one time.
+					if(next(it,1) != path->end())m_mrrg->scheduleNode(cgraNodepre,NULL,cyclecurrent,1,m_II,SRC_NOT_OCCUPY,SRC_NOT_OCCUPY,temp); //if(next(it,1) != path->end()) to avoid the situation the all CGRANode in path is the same ,for example CGRANode0(0)->CGRANode0(1).avoid it's end Node is scheduled for more than one time.
 				}else{//occupy the link
 					srcNodeDelay = false;//srcNodedelay will never happen again if program arrive here
 					int occupystate = LINK_OCCUPY_EMPTY;
 					occupystate = cgraNodecurrent == cgraNodepre ? LINK_OCCUPY_EMPTY :  preLink == NULL ? LINK_OCCUPY_FROM_FU : m_mrrg->linkOccupyDirectionMap[preLink->getdirection()];//if cgraNodecurrent == cgraNodepre mean current link is occupied to save data,should be occupied with state = LINKOCCUPY_EMPTY,else if preLink == NULL,mean the the Link's data comes from the preNode's fu, set the occupied state = LINK_OCCUPY_FROM_FU,else the out link's data come's from the in link
-					m_mrrg->scheduleLink(currentLink,cyclepre,1,m_II,occupystate);
+					m_mrrg->scheduleLink(currentLink,cyclepre,1,m_II,occupystate,temp);
 				}	
 			}	
 			cyclepre= cyclecurrent;
