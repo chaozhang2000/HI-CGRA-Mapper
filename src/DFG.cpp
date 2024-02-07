@@ -551,7 +551,10 @@ list<DFGNodeInst*>* DFG::getInstNodes(){
 	return &m_InstNodes;
 }
 
-void DFG::setConstraints(map<int,int>* constraintmap){
+void DFG::setConstraints(map<int,int>* constraintmap,int maxCGRANodeID){
+	IFDEF(CONFIG_DFG_DEBUG,
+	OUTS("==================================",ANSI_FG_CYAN); 
+  OUTS("[setConstraints:]",ANSI_FG_CYAN););
 	map<int,int>::iterator it;
 	int DFGNodeID = 0;
 	int CGRANodeID = 0;
@@ -562,15 +565,20 @@ void DFG::setConstraints(map<int,int>* constraintmap){
 		CGRANodeID = it->second;
 		for(DFGNodeInst* node: m_InstNodes){
 			if(node -> getID() == DFGNodeID){
-				find = true;
+				if(CGRANodeID > maxCGRANodeID) continue;
 				node -> setConstraint(CGRANodeID);
+				find = true;
+				IFDEF(CONFIG_DFG_DEBUG,outs()<< "DFGNode"<<DFGNodeID<<" ->  CGRANode"<<CGRANodeID<<"\n");
+				break;
 			}
 		}
-		if(find == false)outs()<<"constraint exist but DFGNode not found,this constraint is ignored\n";
+		if(find == false)
+			IFDEF(CONFIG_DFG_DEBUG,
+  		OUTS("constraint "<<"DFGNode"<<DFGNodeID<<" ->  CGRANode"<<CGRANodeID<<" exist in mapconstraint.json but DFGNode not found or CGRANode not found,this constraint is ignored",ANSI_FG_RED););
 	}
 	for(DFGNodeInst* node: m_InstNodes){
 		if(node -> isMemOpts() and !(node->hasConstraint())){
-			outs()<<"DFGNode" << node->getID()<<" have no Constraints\n";
+  		DFG_ERR("DFGNode" << node->getID()<<" have no Constraints");
 		}
 	}
 }
