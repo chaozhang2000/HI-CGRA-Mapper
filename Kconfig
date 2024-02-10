@@ -82,4 +82,13 @@ menu "MAP config"
 config MAP_EN
   bool "Enable MAP"
   default y
+config MAP_CONSTRAINT
+  bool "Need to set map constraint,load and store should be located to a certain CGRANode"
+  default y
+config MAP_BFS
+  bool "Use BFS to route"
+  default n
+config MAP_A
+	bool "Use A* to route"
+	default y
 endmenu

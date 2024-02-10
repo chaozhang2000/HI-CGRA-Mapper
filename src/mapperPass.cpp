@@ -65,6 +65,7 @@ namespace {
 
 			CGRA* cgra = new CGRA(4,4);
 
+#ifdef CONFIG_MAP_CONSTRAINT
 			map<int,int>* constraintmap = new map<int,int>;//TODO: free this space
 
 			bool hasConstraintFile = false; 
@@ -74,10 +75,13 @@ namespace {
 
       /*set constraint in dfg*/
 			dfg->setConstraints(constraintmap,cgra->getNodeCount()-1);
+			delete constraintmap;
+#endif
 
       /*Generate the DFG dot file.*/
       dfg->generateDot(t_F);
 
+#ifdef CONFIG_MAP_CONSTRAINT
       /*don't have ConstrantFile,don't do map.*/
 			if(!hasConstraintFile) {
         outs()<< "=============================================================\n";
@@ -90,6 +94,7 @@ namespace {
 			if (dfg->DFG_error){
 				return false;
 			}
+#endif
 
 #ifdef CONFIG_MAP_EN
 			MRRG* mrrg = new MRRG(cgra,200);

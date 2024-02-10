@@ -4,6 +4,7 @@
 #include "CGRA.h"
 #include "DFG.h"
 #include "MRRG.h"
+#include "common.h"
 using namespace std;
 
 typedef map<int,CGRANode*> PATH;
@@ -51,6 +52,11 @@ class Mapper{
 		int getPathEndCycle(PATH* path);
 		CGRANode* getPathEndCGRANode(PATH* path);
 		void dumpPath(PATH* path);
+#ifdef CONFIG_MAP_A
+		PATH* AxGetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
+		int calculateCost(pair<CGRANode*,int>* currentnode,pair<CGRANode*,int>* nextnode,pair<CGRANode*,int>*dstnode);
+		PATH* BFSgetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
+#endif
 
   public:
 		/**The constructor function of class MRRG 
