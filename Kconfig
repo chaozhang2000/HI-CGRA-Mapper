@@ -60,6 +60,10 @@ config MAP_DEBUG_PATH
   bool "Enable find path detail print"
   default n
 endmenu
+
+config BITSTREAM_DEBUG
+	bool "Enable bitstream debug print"
+	default y
 endmenu
 
 menu "DFG config"
@@ -83,12 +87,22 @@ config MAP_EN
   bool "Enable MAP"
   default y
 config MAP_CONSTRAINT
+	depends on MAP_EN
   bool "Need to set map constraint,load and store should be located to a certain CGRANode"
   default y
-config MAP_BFS
-  bool "Use BFS to route"
-  default n
+
+choice
+	depends on MAP_EN
+	prompt "route algorithm"
+	default MAP_A
 config MAP_A
 	bool "Use A* to route"
+config MAP_BFS
+  bool "Use BFS to route"
+endchoice
+
+config MAP_BITSTREAM
+	depends on MAP_EN
+	bool "Generate bitstream"
 	default y
 endmenu

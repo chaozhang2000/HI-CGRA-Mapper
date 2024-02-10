@@ -761,3 +761,7 @@ Mapper::~Mapper(){
 	}
 }
 
+int Mapper::getII(){
+	return m_II;
+}
+

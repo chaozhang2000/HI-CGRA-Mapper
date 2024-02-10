@@ -71,6 +71,11 @@ class Mapper{
 		/** do heuristicMap
 		 */
 		void heuristicMap();
+
+		/** return m_II
+		 */
+		int getII();
+
 };
 #endif
 

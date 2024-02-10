@@ -9,6 +9,7 @@
 #include "CGRA.h"
 #include "MRRG.h"
 #include "Mapper.h"
+#include "BitStream.h"
 
 using namespace llvm;
 using namespace std;
@@ -102,7 +103,11 @@ namespace {
 			Mapper* mapper = new Mapper(dfg,cgra,mrrg);
 
 			mapper->heuristicMap();
-
+#ifdef CONFIG_MAP_BITSTREAM
+			BitStream* bitstream = new BitStream(mrrg,mapper->getII());
+			bitstream->generateBitStream();
+			delete bitstream;
+#endif
 			delete mapper;
 			delete mrrg;
 #endif
