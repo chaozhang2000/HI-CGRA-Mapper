@@ -104,7 +104,7 @@ namespace {
 
 			mapper->heuristicMap();
 #ifdef CONFIG_MAP_BITSTREAM
-			BitStream* bitstream = new BitStream(mrrg,mapper->getII());
+			BitStream* bitstream = new BitStream(mrrg,cgra,mapper->getII());
 			bitstream->generateBitStream();
 			delete bitstream;
 #endif

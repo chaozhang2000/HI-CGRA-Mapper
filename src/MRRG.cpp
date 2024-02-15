@@ -20,6 +20,8 @@ MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 	for(int i=0;i<m_cgra->getLinkCount();i++){
 		m_LinkInfos[m_cgra->links[i]] = new LinkInfo;
 		m_LinkInfos[m_cgra->links[i]]->m_occupied_state = new int[m_cycles];
+		m_LinkInfos[m_cgra->links[i]]->m_Mappednum = 0;
+		m_LinkInfos[m_cgra->links[i]]->m_lastcycle = 0;
 		for(int c=0;c<m_cycles;c++){
 			m_LinkInfos[m_cgra->links[i]]->m_occupied_state[c] = LINK_NOT_OCCUPY;
 		}
@@ -33,6 +35,7 @@ MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_Src2OccupyState = new int[m_cycles];
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_occupied = new bool[m_cycles];
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_Mappednum = 0;
+			m_NodeInfos[m_cgra->nodes[i][j]]->m_lastcycle = 0;
 			for(int c=0;c<m_cycles;c++){
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_OccupiedByNode[c] = NULL;
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Src1OccupyState[c] = SRC_NOT_OCCUPY;
@@ -77,6 +80,8 @@ void MRRG::MRRGclear(){
 		for(int c=0;c<m_cycles;c++){
 			m_LinkInfos[m_cgra->links[i]]->m_occupied_state[c] = LINK_NOT_OCCUPY;
 		}
+		m_LinkInfos[m_cgra->links[i]]->m_Mappednum = 0;
+		m_LinkInfos[m_cgra->links[i]]->m_lastcycle = 0;
 	}	
   for (int i=0; i<m_cgra->getrows(); ++i) {
     for (int j=0; j<m_cgra->getcolumns(); ++j) {
@@ -87,6 +92,7 @@ void MRRG::MRRGclear(){
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_occupied[c] = false;
 			}
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Mappednum = 0;
+				m_NodeInfos[m_cgra->nodes[i][j]]->m_lastcycle = 0;
     }
   }
 	clearUnsubmit();
@@ -185,13 +191,19 @@ void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,
 }
 
 void MRRG::scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state,bool temp){
+	bool firsttime = true;
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
 		for(int d = 0;d<duration and c+d < m_cycles;d++){
 			unSubmitLinkInfo* unsubmitlink = new unSubmitLinkInfo;
 			unsubmitlink-> link = t_cgraLink;
 			unsubmitlink-> cycle = c+d;
 			unsubmitlink-> OccupyState = occupy_state;
+			unsubmitlink-> add_Mappednum = false;
 			unsubmitlink-> temp = temp;
+			if(firsttime){
+				unsubmitlink->add_Mappednum = true;
+				firsttime = false;
+			}
 			m_unSubmitLinkInfos.push_back(unsubmitlink);
 		}
 	}
@@ -212,7 +224,10 @@ void MRRG::submitschedule(){
 			m_NodeInfos[node]->m_occupied[cycle] = true;
 			m_NodeInfos[node]->m_Src1OccupyState[cycle] = unsubmitnode->Src1OccupyState;
 			m_NodeInfos[node]->m_Src2OccupyState[cycle] = unsubmitnode->Src2OccupyState;
-			if(unsubmitnode->add_Mappednum)m_NodeInfos[node]->m_Mappednum++;
+			if(unsubmitnode->add_Mappednum){
+							m_NodeInfos[node]->m_Mappednum++;
+							m_NodeInfos[node]->m_lastcycle = cycle > m_NodeInfos[node]->m_lastcycle ? cycle:m_NodeInfos[node]->m_lastcycle;
+			}
 		}
 	}
 	for(unSubmitLinkInfo* unsubmitlink: m_unSubmitLinkInfos){
@@ -227,6 +242,10 @@ void MRRG::submitschedule(){
 		}
 		else{
 			m_LinkInfos[link]->m_occupied_state[cycle] = unsubmitlink->OccupyState;
+			if(unsubmitlink->add_Mappednum){
+							m_LinkInfos[link]->m_Mappednum++;
+							m_LinkInfos[link]->m_lastcycle = cycle > m_LinkInfos[link]->m_lastcycle ? cycle:m_LinkInfos[link]->m_lastcycle;
+			}
 		}
 	}
 	clearUnsubmit();
@@ -234,4 +253,48 @@ void MRRG::submitschedule(){
 
 int MRRG::getMRRGcycles(){
 	return m_cycles;
+}
+
+int MRRG::getLastcycleofNode(CGRANode* node){
+	return m_NodeInfos[node]->m_lastcycle;
+}
+int MRRG::getMapednumofNode(CGRANode* node){
+	return m_NodeInfos[node]->m_Mappednum;
+}
+int MRRG::getLastcycleofLink(CGRALink* link){
+	return m_LinkInfos[link]->m_lastcycle;
+}
+int MRRG::getMapednumofLink(CGRALink* link){
+	return m_LinkInfos[link]->m_Mappednum;
+}
+
+int MRRG::getFirstcycleofNode(CGRANode* node){
+	int startcyclenode = 0;
+	int startcyclelink = 0;
+	NodeInfo* nodeinfo = m_NodeInfos[node];
+	for(int i=0;i<m_cycles;i++){
+		if(nodeinfo->m_occupied[i] && nodeinfo->m_OccupiedByNode[i]!=NULL){
+			startcyclenode = i;
+			break;
+		}
+	}	
+	for(int i = 0;i<m_cycles;i++){
+		for(CGRANode* neighbor: *(node->getNeighbors())){
+			CGRALink* link = node->getOutLinkto(neighbor);
+			LinkInfo* linkinfo = m_LinkInfos[link];
+			if(linkinfo->m_occupied_state[i]!=LINK_NOT_OCCUPY && linkinfo->m_occupied_state[i]!=LINK_OCCUPY_EMPTY){
+				startcyclelink = i;
+				break;
+			}
+		}
+	}
+	return startcyclenode > startcyclelink ? startcyclelink:startcyclenode;
+}
+
+NodeInfo* MRRG::getNodeInfoOf(CGRANode* node){
+	return m_NodeInfos[node];
+}
+
+LinkInfo* MRRG::getLinkInfoOf(CGRALink* link){
+	return m_LinkInfos[link];
 }

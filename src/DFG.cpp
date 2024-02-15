@@ -109,6 +109,7 @@ void DFG::construct(Function& t_F,int t_loopargnum) {
 					raw_string_ostream stream(name);
 					stream << *const_int;
 					DFGNodeConst* constNode = new DFGNodeConst(nodeID++,const_data,stream.str());
+					//const_int->getSExtValue();
 					m_ConstNodes.push_back(constNode);
 					IFDEF(CONFIG_DFG_DEBUG,outs()<< *const_data<<" -> (dfgNode ID: "<<constNode->getID()<<")\n");
 				}

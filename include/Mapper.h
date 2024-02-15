@@ -57,6 +57,7 @@ class Mapper{
 		int calculateCost(pair<CGRANode*,int>* currentnode,pair<CGRANode*,int>* nextnode,pair<CGRANode*,int>*dstnode);
 		PATH* BFSgetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
 #endif
+		void printMapResult();
 
   public:
 		/**The constructor function of class MRRG 

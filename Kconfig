@@ -82,13 +82,23 @@ config DFG_SRC_ID
 	default y
 endmenu
 
+menu "CGRA config"
+
+config CGRA_INSTMEM_SIZE 
+  int "Inst MEM size of each PE (uint:max number of Inst)"
+  default 8
+config CGRA_CONSTMEM_SIZE
+	int "Const Mem size of each PE (uint:max number of const)"
+	default 8
+endmenu
+
 menu "MAP config"
 config MAP_EN
   bool "Enable MAP"
   default y
 config MAP_CONSTRAINT
 	depends on MAP_EN
-  bool "Need to set map constraint,load and store should be located to a certain CGRANode"
+  bool "Map load and store to a certain CGRANode."
   default y
 
 choice

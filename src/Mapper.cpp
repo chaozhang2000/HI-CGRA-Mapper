@@ -98,7 +98,10 @@ void Mapper::heuristicMap(){
 		m_II ++;
 	}
 	IFDEF(CONFIG_MAP_DEBUG,OUTS("==================================\nMapping result",ANSI_FG_CYAN));
-	if(mapsuccess)IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping successful with II = "<<m_II<<"\n");	
+	if(mapsuccess){
+		IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping successful with II = "<<m_II<<"\n");	
+		IFDEF(CONFIG_MAP_DEBUG,printMapResult());
+	}
 	else IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping failed with II = "<<m_II<<"\n");	
 }
 
@@ -759,6 +762,36 @@ Mapper::~Mapper(){
 	for(DFGNodeInst* InstNode: *(m_dfg->getInstNodes())){
 		delete m_mapInfo[InstNode];
 	}
+}
+
+/**if map success print the Map result
+ */
+void Mapper::printMapResult(){
+	for(int r = 0; r< m_cgra->getrows();r++){
+		for(int c = 0; c< m_cgra->getcolumns();c++){
+			CGRANode* cgraNode = m_cgra->nodes[r][c];
+			outs()<< "Node("<<cgraNode->getx()<<","<<cgraNode->gety()<<"); ";
+			outs()<< "ID:"<<cgraNode->getID()<<"; ";
+			outs()<< "last_fu_occupy_cycle:"<<m_mrrg->getLastcycleofNode(cgraNode)<<"; ";
+			outs()<< "num_of_occupied_cycles:"<<m_mrrg->getMapednumofNode(cgraNode)<<"\n";
+    }
+  }
+	outs()<<"\n";
+	for (int i=0; i<m_cgra->getLinkCount();i++){
+		CGRALink* cgraLink = m_cgra->links[i];
+		outs()<<"Link"<<cgraLink->getID()<<":from Node"<<cgraLink->getsrc()->getID()<<"->Node"<<cgraLink->getdst()->getID()<<"; ";
+		outs()<< "last_link_occupy_cycle:"<<m_mrrg->getLastcycleofLink(cgraLink)<<"; ";
+		outs()<< "num_of_occupied_cycles:"<<m_mrrg->getMapednumofLink(cgraLink)<<"\n";
+	}
+	outs()<<"\n";
+	for(int r = 0; r< m_cgra->getrows();r++){
+		for(int c = 0; c< m_cgra->getcolumns();c++){
+			CGRANode* cgraNode = m_cgra->nodes[r][c];
+			outs()<< "Node("<<cgraNode->getx()<<","<<cgraNode->gety()<<"); ";
+			outs()<< "ID:"<<cgraNode->getID()<<"; ";
+			outs()<< "first_occupy_cycle:"<<m_mrrg->getFirstcycleofNode(cgraNode)<<"\n";
+    }
+  }
 }
 
 int Mapper::getII(){

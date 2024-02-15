@@ -94,6 +94,12 @@ CGRA::CGRA(int t_rows,int t_columns){
 	outs()<<"CGRAcolumns:"<<m_columns<<"\n";
 	outs()<<"CGRANode:"<<m_FUCount<<"\n";
 	outs()<<"CGRALink:"<<m_LinkCount<<"\n";
+#ifdef CONFIG_CGRA_INSTMEM_SIZE
+	outs()<<"CGRAInstMem size:"<<CONFIG_CGRA_INSTMEM_SIZE<<"\n";
+#endif
+#ifdef CONFIG_CGRA_CONSTMEM_SIZE
+	outs()<<"CGRAConstMem size:"<<CONFIG_CGRA_CONSTMEM_SIZE<<"\n";
+#endif
 
 	OUTS("==================================",ANSI_FG_CYAN); 
   OUTS("[CGRA Node and links information]",ANSI_FG_CYAN);
