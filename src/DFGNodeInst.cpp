@@ -80,3 +80,13 @@ void DFGNodeInst::setConstraint(int CGRANodeID){
 	m_constrainted = true;
 	m_constraintTo = CGRANodeID;
 }
+
+DFGNodeConst* DFGNodeInst::getPredConstNode(int srcID){
+		for(DFGEdge* edge:*getInEdges()){
+			DFGNodeConst* ConstNode = dynamic_cast<DFGNodeConst*>(edge->getSrc());
+			if(edge->getsrcID()==srcID and ConstNode!=NULL){
+				return ConstNode;
+			}
+		}
+		return NULL;
+}

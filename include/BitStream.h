@@ -22,6 +22,8 @@ struct CGRAInstruction {
 
 struct BitStreamInfo{
 	CGRAInstruction insts[CONFIG_CGRA_INSTMEM_SIZE];
+	int const1[CONFIG_CGRA_CONSTMEM_SIZE];
+	int const2[CONFIG_CGRA_CONSTMEM_SIZE];
 };
 class BitStream{
 	private:
@@ -36,6 +38,8 @@ class BitStream{
 		map<string,int> *m_Fukeymap;
 
 		void generateInstofNode(CGRANode* node,BitStreamInfo* bitstream);
+		void generateConst(CGRANode* node,BitStreamInfo* bitstream);
+		int getconstvalue(DFGNodeConst* constnode);
 	public:
 		BitStream(MRRG* t_mrrg,CGRA* t_cgra,int t_II);
 		~BitStream();

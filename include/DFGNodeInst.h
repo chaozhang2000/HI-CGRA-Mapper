@@ -2,6 +2,7 @@
 #define DFGNodeInst_H
 #include <llvm/IR/Instruction.h>
 #include "DFGNode.h"
+#include "DFGNodeConst.h"
 
 using namespace llvm;
 using namespace std;
@@ -85,5 +86,10 @@ class DFGNodeInst:public DFGNode{
 		/** set constraint,set m_constraintTo the value of CGRANodeID,and set m_constrainted true
 		 */
 		void setConstraint(int CGRANodeID);
+
+		/**return a pre ConstNode of this InstNode; if not found return NULL;
+		 * @param: srcID, the srcID of the ConstNode.
+		 */
+		DFGNodeConst* getPredConstNode(int srcID);
 };
 #endif
