@@ -3,6 +3,7 @@
 #include <llvm/IR/Instruction.h>
 #include "DFGNode.h"
 #include "DFGNodeConst.h"
+#include "DFGNodeParam.h"
 
 using namespace llvm;
 using namespace std;
@@ -91,5 +92,6 @@ class DFGNodeInst:public DFGNode{
 		 * @param: srcID, the srcID of the ConstNode.
 		 */
 		DFGNodeConst* getPredConstNode(int srcID);
+		DFGNodeParam* getPredParamNode(int srcID);
 };
 #endif

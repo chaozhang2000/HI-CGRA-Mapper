@@ -90,3 +90,13 @@ DFGNodeConst* DFGNodeInst::getPredConstNode(int srcID){
 		}
 		return NULL;
 }
+
+DFGNodeParam* DFGNodeInst::getPredParamNode(int srcID){
+		for(DFGEdge* edge:*getInEdges()){
+			DFGNodeParam* ParamNode = dynamic_cast<DFGNodeParam*>(edge->getSrc());
+			if(edge->getsrcID()==srcID and ParamNode!=NULL){
+				return ParamNode;
+			}
+		}
+		return NULL;
+}

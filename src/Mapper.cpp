@@ -91,10 +91,10 @@ void Mapper::heuristicMap(){
 				}
 			}
 			else{
-				assert("this DFGInstNode has some preInstNode mapped and also has some preInstNode not mapped, this should not happened,Mapper has unfixed bugs");
+				llvm_unreachable("this DFGInstNode has some preInstNode mapped and also has some preInstNode not mapped, this should not happened,Mapper has unfixed bugs");
 			}
 		}
-		if(m_II >m_mrrg->getMRRGcycles()/2 or mapsuccess)break;//TODO:
+		if(m_II >m_mrrg->getMRRGcycles()/2 or mapsuccess)break;
 		m_II ++;
 	}
 	IFDEF(CONFIG_MAP_DEBUG,OUTS("==================================\nMapping result",ANSI_FG_CYAN));
