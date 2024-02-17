@@ -10,6 +10,9 @@ DFGNodeInst::DFGNodeInst(int t_id,Instruction*t_inst,string t_name):DFGNode(t_id
 	m_predInstNodes = NULL;
 	m_level = 0;
 	m_haveSetLevel = false;
+	m_constrainted = false;
+	m_constraintTo = 0;
+	m_isMemOpts = (m_opcodeName == "load" || m_opcodeName == "store")? true:false;
 }
 
 Instruction* DFGNodeInst::getInst() {
@@ -63,4 +66,37 @@ DFGNodeInst::~DFGNodeInst(){
 	if(m_succInstNodes!=NULL){
 		delete m_succInstNodes;
 	}
+}
+bool DFGNodeInst::isMemOpts(){
+	return m_isMemOpts;
+}
+bool DFGNodeInst::hasConstraint(){
+	return m_constrainted;
+}
+int DFGNodeInst::constraintTo(){
+	return m_constraintTo;
+}
+void DFGNodeInst::setConstraint(int CGRANodeID){
+	m_constrainted = true;
+	m_constraintTo = CGRANodeID;
+}
+
+DFGNodeConst* DFGNodeInst::getPredConstNode(int srcID){
+		for(DFGEdge* edge:*getInEdges()){
+			DFGNodeConst* ConstNode = dynamic_cast<DFGNodeConst*>(edge->getSrc());
+			if(edge->getsrcID()==srcID and ConstNode!=NULL){
+				return ConstNode;
+			}
+		}
+		return NULL;
+}
+
+DFGNodeParam* DFGNodeInst::getPredParamNode(int srcID){
+		for(DFGEdge* edge:*getInEdges()){
+			DFGNodeParam* ParamNode = dynamic_cast<DFGNodeParam*>(edge->getSrc());
+			if(edge->getsrcID()==srcID and ParamNode!=NULL){
+				return ParamNode;
+			}
+		}
+		return NULL;
 }

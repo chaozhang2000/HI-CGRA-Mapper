@@ -9,11 +9,13 @@
 #include "CGRA.h"
 #include "MRRG.h"
 #include "Mapper.h"
+#include "BitStream.h"
 
 using namespace llvm;
 using namespace std;
 using json = nlohmann::json;
 
+bool getConstraint(map<int,int>* constraintmap);
 void addDefaultKernels(map<string, list<int>*>*);
 
 namespace {
@@ -40,11 +42,10 @@ namespace {
 			int loopargnum = 0;
       ifstream i("./param.json");
       if (!i.good()) {
-
-        errs()<< "=============================================================\n";
-        errs()<<"\033[0;31mPlease provide a valid <param.json> in the current directory.\n";
-        errs()<<"A set of default parameters is leveraged.\033[0m\n";
-        errs()<<"=============================================================\n";
+        outs()<< "=============================================================\n";
+				OUTS("Please provide a valid <param.json> in the current directory.",ANSI_FG_RED);
+				OUTS("A set of default parameters is leveraged.",ANSI_FG_RED);
+        outs()<<"=============================================================\n";
       } else {
         json param;
         i >> param; 
@@ -57,23 +58,56 @@ namespace {
         return false;
       }
 
+
       DFG* dfg = new DFG(t_F,loopargnum);
 			if (dfg->DFG_error){
 				return false;
 			}
 
-      // Generate the DFG dot file.
-			bool isTrimmedDemo = true;
-      dfg->generateDot(t_F, isTrimmedDemo);
-
 			CGRA* cgra = new CGRA(4,4);
+
+#ifdef CONFIG_MAP_CONSTRAINT
+			map<int,int>* constraintmap = new map<int,int>;//TODO: free this space
+
+			bool hasConstraintFile = false; 
+
+      /*get constraint form the file*/
+			hasConstraintFile = getConstraint(constraintmap);
+
+      /*set constraint in dfg*/
+			dfg->setConstraints(constraintmap,cgra->getNodeCount()-1);
+			delete constraintmap;
+#endif
+
+      /*Generate the DFG dot file.*/
+      dfg->generateDot(t_F);
+
+#ifdef CONFIG_MAP_CONSTRAINT
+      /*don't have ConstrantFile,don't do map.*/
+			if(!hasConstraintFile) {
+        outs()<< "=============================================================\n";
+				OUTS("Please provide a <mapconstraint.json> in the current directory.",ANSI_FG_RED);
+        outs()<<"=============================================================\n";
+				return false;
+			}
+
+			/*setConstraint may cause err,if err break*/
+			if (dfg->DFG_error){
+				return false;
+			}
+#endif
+
 #ifdef CONFIG_MAP_EN
 			MRRG* mrrg = new MRRG(cgra,200);
 
 			Mapper* mapper = new Mapper(dfg,cgra,mrrg);
 
 			mapper->heuristicMap();
-
+#ifdef CONFIG_MAP_BITSTREAM
+			BitStream* bitstream = new BitStream(mrrg,cgra,mapper->getII());
+			bitstream->generateBitStream();
+			delete bitstream;
+#endif
 			delete mapper;
 			delete mrrg;
 #endif
@@ -87,3 +121,23 @@ namespace {
 
 char mapperPass::ID = 0;
 static RegisterPass<mapperPass> X("mapperPass", "DFG Pass Analyse", false, false);
+
+bool getConstraint(map<int,int>* constraintmap){
+			bool hasmapconstrantJson= false;
+      ifstream mapconstraint("./mapconstraint.json");
+			if(mapconstraint.good())hasmapconstrantJson= true;
+
+      if (!hasmapconstrantJson) {
+				return false;
+      }else{
+        json constraint;
+				mapconstraint >> constraint;
+				json maps = constraint["DFGNodeIDCGRANodeID"];
+				json map;
+				for(unsigned long i =0;i<maps.size();i++){
+					map = maps[i];
+					(*constraintmap)[map[0]] = map[1];
+				}
+				return true;
+			}
+}

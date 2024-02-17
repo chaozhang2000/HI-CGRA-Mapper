@@ -45,10 +45,13 @@ struct NodeInfo{
 		int *m_Src1OccupyState;
 		int *m_Src2OccupyState;
 
-/** record how many DFGInstNode has been mapped to this CGRANode
+/** record how many DFGInstNodes has been mapped to this CGRANode
 * m_OccupyedByNode = new DFGNodeInst*[cycle];
 */
 		int m_Mappednum;
+
+		/*record the clock cycle when the last inst occupy the fu of this CGRANode.*/
+		int m_lastcycle;
 };
 
 /**this struct is used to record the information of a CGRALink in MRRG
@@ -60,6 +63,10 @@ struct LinkInfo{
 * LINK_OCCUPY_FU,mean the CGRALink is occupy and the output data is come from the fu out
 */
 		int *m_occupied_state;
+		/*record how many clock cycles a CGRALink is occupied in a II*/
+		int m_Mappednum;
+		/*record the clock cycle when the last inst occupy the CGRALink.*/
+		int m_lastcycle;
 };
 
 /**this struct is used to record the Possible but not yet submitted modification information for CGRANodes in MRRG
@@ -72,6 +79,7 @@ struct unSubmitNodeInfo{
 	int Src1OccupyState;
 	int Src2OccupyState;
 	bool add_Mappednum;//when submit,if cause m_Mappednum in NodeInfo ++
+	bool temp;
 };
 
 /**this struct is used to record the Possible but not yet submitted modification information for CGRALink in MRRG
@@ -80,6 +88,8 @@ struct unSubmitLinkInfo{
 	CGRALink* link;
 	int cycle;
 	int OccupyState;
+	bool add_Mappednum;
+	bool temp;
 };
 
 class MRRG {
@@ -101,6 +111,7 @@ class MRRG {
 		list<unSubmitLinkInfo*> m_unSubmitLinkInfos;
 
   public:
+
 		/**The constructor function of class MRRG 
 		 */
 		MRRG(CGRA* t_cgra,int m_cycles);
@@ -130,6 +141,11 @@ class MRRG {
 		 */
 		void clearUnsubmit();
 
+		/**
+		 * clear the temp unsubmit link and node in list m_unSubmitLinkInfos and m_unSubmitNodeInfos
+		 */
+		void clearTempUnsubmit();
+
 		/** return m_cycles
 		 */
 		int getMRRGcycles();
@@ -153,16 +169,35 @@ class MRRG {
 		 * call this function one time will cause one add_Mappednum in unSubmitNodeInfo be set true
 		 * if finally call submitschedule will cause add_Mappednum in NodeInfo ++, if the Mappednum of t_cgraNode >= II, the Mapper will not map any DFGNodeInst to t_cgraNode,so don't call this function for the same occupied in MRRG for more than one time.TODO:fix this 
 		 */
-		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState);
+		void scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState,bool temp);
 
 		/**schedule the CGRALink,new unSubmitLinkInfo* and push_back to m_unSubmitLinkInfos
 		 */
-		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state);
+		void scheduleLink(CGRALink* t_cgraLink,int t_cycle,int duration,int t_II,int occupy_state,bool temp);
 
 		/** submit the unsubmitInfo to the MRRG(m_NodeInfos and m_LinkInfos)
 		 * then clearUnsubmit
 		 */
 		void submitschedule();
+
+		/*return m_NodeInfos[node]->m_lastcycle*/
+		int getLastcycleofNode(CGRANode* node);
+
+		/*return m_NodeInfos[node]->m_Mappednum;*/
+		int getMapednumofNode(CGRANode* node);
+
+		/*return m_LinkInfos[link]->m_lastcycle*/
+		int getLastcycleofLink(CGRALink* link);
+
+		/*return m_LinkInfos[link]->m_Mappednum;*/
+		int getMapednumofLink(CGRALink* link);
+
+		/*get the clock cycle of the first inst in a PE*/
+		int getFirstcycleofNode(CGRANode* node);
+
+		/*return m_NodeInfos[node];*/
+		NodeInfo* getNodeInfoOf(CGRANode* node);
+		LinkInfo* getLinkInfoOf(CGRALink* link);
 };
 
 #endif

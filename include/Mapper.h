@@ -4,6 +4,7 @@
 #include "CGRA.h"
 #include "DFG.h"
 #include "MRRG.h"
+#include "common.h"
 using namespace std;
 
 typedef map<int,CGRANode*> PATH;
@@ -46,11 +47,17 @@ class Mapper{
 		PATH* getmaincostPath(PATHS* paths);
 
 		void scheduleDstNodeInPath(PATH* path,DFGNodeInst* t_InstNode,int src1_state,int src2_state);
-		void scheduleLinkInPath(PATH* path);
+		void scheduleLinkInPath(PATH* path,bool temp);
 
 		int getPathEndCycle(PATH* path);
 		CGRANode* getPathEndCGRANode(PATH* path);
 		void dumpPath(PATH* path);
+#ifdef CONFIG_MAP_A
+		PATH* AxGetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
+		int calculateCost(pair<CGRANode*,int>* currentnode,pair<CGRANode*,int>* nextnode,pair<CGRANode*,int>*dstnode);
+		PATH* BFSgetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
+#endif
+		void printMapResult();
 
   public:
 		/**The constructor function of class MRRG 
@@ -65,6 +72,11 @@ class Mapper{
 		/** do heuristicMap
 		 */
 		void heuristicMap();
+
+		/** return m_II
+		 */
+		int getII();
+
 };
 #endif
 

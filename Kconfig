@@ -60,6 +60,10 @@ config MAP_DEBUG_PATH
   bool "Enable find path detail print"
   default n
 endmenu
+
+config BITSTREAM_DEBUG
+	bool "Enable bitstream debug print"
+	default y
 endmenu
 
 menu "DFG config"
@@ -82,4 +86,70 @@ menu "MAP config"
 config MAP_EN
   bool "Enable MAP"
   default y
+config MAP_CONSTRAINT
+	depends on MAP_EN
+  bool "Map load and store to a certain CGRANode."
+  default y
+
+choice
+	depends on MAP_EN
+	prompt "route algorithm"
+	default MAP_A
+config MAP_A
+	bool "Use A* to route"
+config MAP_BFS
+  bool "Use BFS to route"
+endchoice
+endmenu
+
+menu "BitStream config"
+config MAP_BITSTREAM
+	depends on MAP_EN
+	bool "Generate bitstream"
+	default y
+config CGRA_INSTMEM_SIZE 
+  int "Inst MEM size of each PE (uint:max number of Inst)"
+  default 8
+config CGRA_CONSTMEM_SIZE
+	int "Const Mem size of each PE (uint:max number of const)"
+	default 8
+config CGRA_SHIFTCONSTMEM_SIZE
+	int "Shift Const Mem size of each PE (uint:max number of shift const)"
+	default 8
+
+menu "i config"
+config LOOP_I_START 
+  int "i start (int)"
+  default 0
+config LOOP_I_INC 
+  int "i inc (int)"
+  default 1
+config LOOP_I_END 
+  int "i end (int)"
+  default 0
+endmenu
+menu "j config"
+config LOOP_J_START 
+  int "j start (int)"
+  default 0
+config LOOP_J_INC 
+  int "j inc (int)"
+  default 1
+config LOOP_J_END 
+  int "j end (int)"
+  default 0
+endmenu
+menu "k config"
+config LOOP_K_START 
+  int "k start (int)"
+  default 0
+config LOOP_K_INC 
+  int "k inc (int)"
+  default 1
+config LOOP_K_END 
+  int "k end (int)"
+  default 0
+endmenu
+
+
 endmenu

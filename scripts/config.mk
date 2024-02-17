@@ -3,12 +3,12 @@ COLOR_END := $(shell echo "\033[0m")
 
 ifeq ($(wildcard .config),)
 $(warning $(COLOR_RED)Warning: .config does not exists!$(COLOR_END))
-$(warning $(COLOR_RED)To build the project, first run 'make mapperconfig' or run 'make defconfig' at '$(MAPPER_HOME)' first.$(COLOR_END))
+$(warning $(COLOR_RED)To build the project, first run 'make menuconfig' or run 'make defconfig' at '$(HOME)' first.$(COLOR_END))
 endif
 
 Q            := @
-KCONFIG_PATH := $(MAPPER_HOME)/tools/kconfig
-Kconfig      := $(MAPPER_HOME)/Kconfig
+KCONFIG_PATH := $(HOME)/tools/kconfig
+Kconfig      := $(HOME)/Kconfig
 rm-distclean += include/generated include/config .config .config.old
 silent := -s
 

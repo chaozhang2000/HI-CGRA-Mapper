@@ -109,6 +109,7 @@ void DFG::construct(Function& t_F,int t_loopargnum) {
 					raw_string_ostream stream(name);
 					stream << *const_int;
 					DFGNodeConst* constNode = new DFGNodeConst(nodeID++,const_data,stream.str());
+					//const_int->getSExtValue();
 					m_ConstNodes.push_back(constNode);
 					IFDEF(CONFIG_DFG_DEBUG,outs()<< *const_data<<" -> (dfgNode ID: "<<constNode->getID()<<")\n");
 				}
@@ -407,7 +408,7 @@ void DFG::connectDFGNodes() {
   }
 }
 
-void DFG::generateDot(Function &t_F, bool t_isTrimmedDemo) {
+void DFG::generateDot(Function &t_F) {
   error_code error;
 //  sys::fs::OpenFlags F_Excl;
   string func_name = t_F.getName().str();
@@ -549,4 +550,36 @@ int DFG::getInstNodeCount(){
 
 list<DFGNodeInst*>* DFG::getInstNodes(){
 	return &m_InstNodes;
+}
+
+void DFG::setConstraints(map<int,int>* constraintmap,int maxCGRANodeID){
+	IFDEF(CONFIG_DFG_DEBUG,
+	OUTS("==================================",ANSI_FG_CYAN); 
+  OUTS("[setConstraints:]",ANSI_FG_CYAN););
+	map<int,int>::iterator it;
+	int DFGNodeID = 0;
+	int CGRANodeID = 0;
+	bool find = false;
+	for(it = constraintmap->begin();it!=constraintmap->end();++it){
+		find = false;
+		DFGNodeID = it->first;
+		CGRANodeID = it->second;
+		for(DFGNodeInst* node: m_InstNodes){
+			if(node -> getID() == DFGNodeID){
+				if(CGRANodeID > maxCGRANodeID) continue;
+				node -> setConstraint(CGRANodeID);
+				find = true;
+				IFDEF(CONFIG_DFG_DEBUG,outs()<< "DFGNode"<<DFGNodeID<<" ->  CGRANode"<<CGRANodeID<<"\n");
+				break;
+			}
+		}
+		if(find == false)
+			IFDEF(CONFIG_DFG_DEBUG,
+  		OUTS("constraint "<<"DFGNode"<<DFGNodeID<<" ->  CGRANode"<<CGRANodeID<<" exist in mapconstraint.json but DFGNode not found or CGRANode not found,this constraint is ignored",ANSI_FG_RED););
+	}
+	for(DFGNodeInst* node: m_InstNodes){
+		if(node -> isMemOpts() and !(node->hasConstraint())){
+  		DFG_ERR("DFGNode" << node->getID()<<" have no Constraints");
+		}
+	}
 }

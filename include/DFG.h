@@ -70,9 +70,8 @@ class DFG {
 		/** Generate the Dot file according the DFG
 		 * we can latter use dot tool to generate the png file of DFG.
  		 * @param t_F : the function pointer which the mapperPass is processing
- 		 * @param t_isTrimmedDemo : use to control the generation of different dot(png) files. If this value is true , the name of the DFGNode in the dot(png) is the opcode of the inst,but if this value is false ,the name will be the complete instruction. this value is given from the "isTrimmedDemo" param in param.json.
 		 */
-		void generateDot(Function &t_F, bool t_isTrimmedDemo);
+		void generateDot(Function &t_F);
 
 		/**get the InstNode count in DFG
 		 * return the m_InstNodes.size()
@@ -83,5 +82,10 @@ class DFG {
 		 * return the &m_InstNodes
 		 */
     list<DFGNodeInst*>* getInstNodes();
+
+		/**get the InstNodes
+		 * return the &m_InstNodes
+		 */
+		void setConstraints(map<int,int>* constraintmap,int maxCGRANodeID);
 };
 #endif

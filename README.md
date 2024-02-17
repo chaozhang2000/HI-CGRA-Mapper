@@ -6,7 +6,7 @@ Ubuntu22.04
 
 1. install dependency
 ```
-sudo apt-get install clang-12 make cmake build-essential llvm llvm-12-dev graphviz bison flex
+sudo apt-get install clang-12 make build-essential llvm llvm-12-dev graphviz bison flex
 ```
 
 2. add MAPPER\_HOME to ~/.bashrc  
