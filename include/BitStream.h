@@ -70,6 +70,7 @@ class BitStream{
 		int getconstvalue(DFGNodeConst* constnode);
 		void generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream);
 		int calculateShiftconst(DFGNodeParam* paramnode,int delayII);
+		void printBitStream();
 	public:
 		BitStream(MRRG* t_mrrg,CGRA* t_cgra,int t_II);
 		~BitStream();

@@ -32,6 +32,10 @@ void BitStream::generateBitStream(){
 			generateShiftConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
 		}
 	}
+
+
+	IFDEF(CONFIG_BITSTREAM_DEBUG,printBitStream()); 
+	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"Start write bitstream to bitstream.bin\n"); 
 	string filename = "./bitstream.bin";
 	ofstream file(filename,ios::binary|ios::trunc);
 	if(!file){
@@ -40,8 +44,7 @@ void BitStream::generateBitStream(){
 	}
 	file.write((char*)m_bitStreamInfo,sizeof(BitStreamInfo));
 	file.close();
-	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"Map II="<<m_II<<"\n"); 
-	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"successfully finish bitstream generation\n"); 
+	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"successfully write bitstream to bitstream.bin\n"); 
 }
 
 void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
@@ -209,6 +212,10 @@ int BitStream::calculateShiftconst(DFGNodeParam* paramnode,int delayII){
 	return 0;
 }
 
+void BitStream::printBitStream(){
+	outs()<<"hello\n";
+	outs()<<"Map II="<<m_II<<"\n"; 
+}
 BitStream::~BitStream(){
 	delete m_bitStreamInfo;
 }
