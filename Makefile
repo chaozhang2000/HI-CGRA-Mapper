@@ -17,3 +17,4 @@ CFLAGS_BUILD += $(if $(CONFIG_CC_DEBUG),-Og -ggdb3,)
 CFLAGS += $(shell llvm-config-12 --cxxflags) $(CFLAGS_BUILD)
 LDFLAGS += $(shell llvm-config-12 --ldflags) $(CFLAGS_BUILD)
 include $(HOME)/scripts/build.mk
+include $(HOME)/scripts/native.mk

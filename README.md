@@ -18,4 +18,3 @@ sudo apt-get install clang-12 make build-essential llvm llvm-12-dev graphviz bis
 make menuconfig
 make
 ```
-
