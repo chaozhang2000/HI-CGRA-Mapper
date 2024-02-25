@@ -23,6 +23,11 @@ void BitStream::generateBitStream(){
 	IFDEF(CONFIG_BITSTREAM_DEBUG,OUTS("\nBITSTREAM DEBUG",ANSI_FG_BLUE)); 
 	IFDEF(CONFIG_BITSTREAM_DEBUG,OUTS("==================================",ANSI_FG_CYAN));
 	IFDEF(CONFIG_BITSTREAM_DEBUG,OUTS("start bitstream generate",ANSI_FG_CYAN)); 
+	m_bitStreamInfo->CheckInfo.InstMemSize = CONFIG_CGRA_INSTMEM_SIZE;
+	m_bitStreamInfo->CheckInfo.ConstMemSize = CONFIG_CGRA_CONSTMEM_SIZE;
+	m_bitStreamInfo->CheckInfo.ShiftConstMemSize = CONFIG_CGRA_SHIFTCONSTMEM_SIZE;
+
+
 	int rows = m_cgra->getrows();
 	int cols = m_cgra->getcolumns();
   for (int i=0; i<rows; i++) {
@@ -30,6 +35,7 @@ void BitStream::generateBitStream(){
 			generateInstofNode(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
 			generateConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
 			generateShiftConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs.IInum=getIInum();
 		}
 	}
 
@@ -210,6 +216,19 @@ void BitStream::generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream){
 /*TODO: not finish yet!! return the value of shiftconst, in mm example shiftconst is always 0*/
 int BitStream::calculateShiftconst(DFGNodeParam* paramnode,int delayII){
 	return 0;
+}
+
+/*TODO: this need to improve,now is only a easy implement*/
+int BitStream::getIInum(){
+	int IInum = 0;
+	for(int i = CONFIG_LOOP_I_START; CONFIG_LOOP_I_INC > 0 ? i < CONFIG_LOOP_I_END:i>CONFIG_LOOP_I_END;i = i + CONFIG_LOOP_I_INC){
+		for(int j = CONFIG_LOOP_J_START; CONFIG_LOOP_J_INC > 0 ? j < CONFIG_LOOP_J_END:j>CONFIG_LOOP_J_END;j = j + CONFIG_LOOP_J_INC){
+			for(int k = CONFIG_LOOP_K_START; CONFIG_LOOP_K_INC > 0 ? k < CONFIG_LOOP_K_END:k>CONFIG_LOOP_K_END;k = k + CONFIG_LOOP_K_INC){
+				IInum ++;
+			}
+		}
+	}
+	return IInum;
 }
 
 void BitStream::printBitStream(){

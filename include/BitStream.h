@@ -21,6 +21,7 @@ struct CGRAInstruction {
 };
 struct CtrlRegs {
 	int Instnum;
+	int IInum;
 	int Constnum1;
 	int Constnum2;
 	int Shiftconstnum1;
@@ -36,6 +37,7 @@ struct CtrlRegs {
 	int K_thread;
 
 	int Instcnt;
+	int IIcnt;
 	int Constcnt1;
 	int Constcnt2;
 	int Shiftconstcnt1;
@@ -50,7 +52,13 @@ struct BitStreamInfoPE{
 	int shiftconst2[CONFIG_CGRA_SHIFTCONSTMEM_SIZE];
 	CtrlRegs ctrlregs;
 };
+struct BitStreamCheck{
+	int InstMemSize;
+	int ConstMemSize;
+	int ShiftConstMemSize;
+};
 struct BitStreamInfo{
+	BitStreamCheck CheckInfo;
 	BitStreamInfoPE BitstreaminfoOfPE[16];
 };
 class BitStream{
@@ -70,6 +78,7 @@ class BitStream{
 		int getconstvalue(DFGNodeConst* constnode);
 		void generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream);
 		int calculateShiftconst(DFGNodeParam* paramnode,int delayII);
+		int getIInum();
 		void printBitStream();
 	public:
 		BitStream(MRRG* t_mrrg,CGRA* t_cgra,int t_II);
