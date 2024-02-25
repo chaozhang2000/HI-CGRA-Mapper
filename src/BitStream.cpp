@@ -212,6 +212,9 @@ void BitStream::generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream){
 	bitstream->ctrlregs.I_thread=CONFIG_LOOP_I_END;
 	bitstream->ctrlregs.J_thread=CONFIG_LOOP_J_END;
 	bitstream->ctrlregs.K_thread=CONFIG_LOOP_K_END;
+	bitstream->ctrlregs.I=CONFIG_LOOP_I_START;
+	bitstream->ctrlregs.J=CONFIG_LOOP_J_START;
+	bitstream->ctrlregs.K=CONFIG_LOOP_K_START;
 }
 /*TODO: not finish yet!! return the value of shiftconst, in mm example shiftconst is always 0*/
 int BitStream::calculateShiftconst(DFGNodeParam* paramnode,int delayII){

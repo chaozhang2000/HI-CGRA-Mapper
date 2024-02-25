@@ -42,6 +42,9 @@ struct CtrlRegs {
 	int Constcnt2;
 	int Shiftconstcnt1;
 	int Shiftconstcnt2;
+	int K;
+	int J;
+	int I;
 };
 
 struct BitStreamInfoPE{
