@@ -272,6 +272,7 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 											succnotfindcnt ++;
 							}
 						}
+						if(InstNode->getSuccInstNodes()->size() == 0) flag = false;
 						if(flag == true)allSuccNodeHasLevel.insert(InstNode);
 						if(succNodeHasLevelPercent < (InstNode->getSuccInstNodes()->size()==0)?0:1-((float)succnotfindcnt)/((float)(InstNode->getSuccInstNodes()->size()))){
 							succNodeHasLevelPercent = (InstNode->getSuccInstNodes()->size()==0)?0:1-((float)succnotfindcnt)/((float)(InstNode->getSuccInstNodes()->size()));
@@ -287,6 +288,7 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 											prednotfindcnt ++;					
 							}
 						}
+						if(InstNode->getPredInstNodes()->size() == 0) flag = false;
 						if(flag == true)allPredNodeHasLevel.insert(InstNode);
 						if(predNodeHasLevelPercent < (InstNode->getPredInstNodes()->size()==0)?0:1-((float)prednotfindcnt)/((float)(InstNode->getPredInstNodes()->size()))){
 							predNodeHasLevelPercent = (InstNode->getPredInstNodes()->size()==0)?0:1-((float)prednotfindcnt)/((float)(InstNode->getPredInstNodes()->size()));
