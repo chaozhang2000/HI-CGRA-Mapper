@@ -278,15 +278,19 @@ int MRRG::getFirstcycleofNode(CGRANode* node){
 			break;
 		}
 	}	
+
+	bool find = false;
 	for(int i = 0;i<m_cycles;i++){
 		for(CGRANode* neighbor: *(node->getNeighbors())){
 			CGRALink* link = node->getOutLinkto(neighbor);
 			LinkInfo* linkinfo = m_LinkInfos[link];
 			if(linkinfo->m_occupied_state[i]!=LINK_NOT_OCCUPY && linkinfo->m_occupied_state[i]!=LINK_OCCUPY_EMPTY){
 				startcyclelink = i;
+				find = true;
 				break;
 			}
 		}
+		if(find) break;
 	}
 	return startcyclenode > startcyclelink ? startcyclelink:startcyclenode;
 }

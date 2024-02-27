@@ -23,7 +23,8 @@ enum {  LINK_NOT_OCCUPY,
 				LINK_OCCUPY_FROM_S,
 				LINK_OCCUPY_FROM_W,
 				LINK_OCCUPY_FROM_E,
-				LINK_OCCUPY_FROM_FU};
+				LINK_OCCUPY_FROM_FU,
+				LINK_OCCUPY_FROM_FUREG};
 
 /**this struct is used to record the information of a CGRANode in MRRG
  */

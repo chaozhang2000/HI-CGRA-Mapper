@@ -689,7 +689,8 @@ void Mapper::scheduleLinkInPath(PATH* path,bool temp){
 	CGRANode* cgraNodepre = NULL;
 	CGRALink* currentLink = NULL;
 	CGRALink* preLink = NULL;
-	bool srcNodeDelay = true;
+	bool atpathfront= true;
+	bool haveNodeDelay = false;
 	for(it = path->begin();it != path->end();it++){
 			cyclecurrent = (*it).first;
 			cgraNodecurrent = (*it).second;
@@ -700,13 +701,16 @@ void Mapper::scheduleLinkInPath(PATH* path,bool temp){
 
 			if(it != path->begin()){//the first node in path don't need process
 
-				if(cgraNodecurrent == cgraNodepre and srcNodeDelay){//handle the srcNode Delay
-					if(next(it,1) != path->end())m_mrrg->scheduleNode(cgraNodepre,NULL,cyclecurrent,1,m_II,SRC_NOT_OCCUPY,SRC_NOT_OCCUPY,temp); //if(next(it,1) != path->end()) to avoid the situation the all CGRANode in path is the same ,for example CGRANode0(0)->CGRANode0(1).avoid it's end Node is scheduled for more than one time.
+				if(cgraNodecurrent == cgraNodepre and atpathfront){//handle the srcNode Delay
+					if(next(it,1) != path->end()){
+									m_mrrg->scheduleNode(cgraNodepre,NULL,cyclecurrent,1,m_II,SRC_NOT_OCCUPY,SRC_NOT_OCCUPY,temp); //if(next(it,1) != path->end()) to avoid the situation the all CGRANode in path is the same ,for example CGRANode0(0)->CGRANode0(1).avoid it's end Node is scheduled for more than one time.
+									haveNodeDelay = true;
+					}
 				}else{//occupy the link
-					srcNodeDelay = false;//srcNodedelay will never happen again if program arrive here
 					int occupystate = LINK_OCCUPY_EMPTY;
-					occupystate = cgraNodecurrent == cgraNodepre ? LINK_OCCUPY_EMPTY :  preLink == NULL ? LINK_OCCUPY_FROM_FU : m_mrrg->linkOccupyDirectionMap[preLink->getdirection()];//if cgraNodecurrent == cgraNodepre mean current link is occupied to save data,should be occupied with state = LINKOCCUPY_EMPTY,else if preLink == NULL,mean the the Link's data comes from the preNode's fu, set the occupied state = LINK_OCCUPY_FROM_FU,else the out link's data come's from the in link
+					occupystate = cgraNodecurrent == cgraNodepre ? LINK_OCCUPY_EMPTY :  preLink == NULL ? atpathfront&&haveNodeDelay? LINK_OCCUPY_FROM_FUREG: LINK_OCCUPY_FROM_FU : m_mrrg->linkOccupyDirectionMap[preLink->getdirection()];//if cgraNodecurrent == cgraNodepre mean current link is occupied to save data,should be occupied with state = LINKOCCUPY_EMPTY,else if preLink == NULL,mean the the Link's data comes from the preNode's fu, set the occupied state = LINK_OCCUPY_FROM_FU,else the out link's data come's from the in link
 					m_mrrg->scheduleLink(currentLink,cyclepre,1,m_II,occupystate,temp);
+					atpathfront= false;//atpathfront will never happen again if program arrive here
 				}	
 			}	
 			cyclepre= cyclecurrent;
