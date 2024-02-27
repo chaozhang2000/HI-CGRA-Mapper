@@ -218,6 +218,7 @@ void BitStream::generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream){
 }
 /*TODO: not finish yet!! return the value of shiftconst, in mm example shiftconst is always 0*/
 int BitStream::calculateShiftconst(DFGNodeParam* paramnode,int delayII){
+	if(delayII > 0)llvm_unreachable("shiftconst not finished yet");
 	return 0;
 }
 
