@@ -2,7 +2,7 @@
 #include "CGRALink.h"
 
 #define COMMON_OPTS(f)\
-				f(mul) f(add) f(getelementptr)
+				f(mul) f(add) f(getelementptr) f(shl)
 #define LOAD_STORE_OPTS(f)\
 				f(load) f(store)
 #define M_SUPPORTOPTS_INSERT(k) m_supportOpts.insert(#k);
