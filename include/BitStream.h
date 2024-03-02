@@ -22,6 +22,8 @@ struct CGRAInstruction {
 struct CtrlRegs {
 	int Instnum;
 	int IInum;
+	int FinishInstcnt;
+	int FinishIIcnt;
 	int Constnum1;
 	int Constnum2;
 	int Shiftconstnum1;
@@ -45,6 +47,7 @@ struct CtrlRegs {
 	int K;
 	int J;
 	int I;
+	bool Finish;
 };
 
 struct BitStreamInfoPE{

@@ -35,7 +35,9 @@ void BitStream::generateBitStream(){
 			generateInstofNode(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
 			generateConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
 			generateShiftConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs.IInum=getIInum();
+			int IInum = getIInum();
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs.IInum=IInum;
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs.FinishIIcnt+=IInum;
 		}
 	}
 
@@ -59,6 +61,8 @@ void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
 	int first_cycle = m_mrrg->getFirstcycleofNode(node);
 	int last_cycle = m_mrrg->getLastcycleofNode(node);
 	NodeInfo* nodeinfo = m_mrrg->getNodeInfoOf(node);
+	int maxdelayII = 0;
+	int finishInstcnt =bitstream->ctrlregs.Instnum -1;
 
 	/*Fuinst*/
 	for(int c = first_cycle; c<= last_cycle;c++){
@@ -68,7 +72,14 @@ void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
 		bitstream->insts[inst_cnt].FuInst.Fukey = (*m_Fukeymap)[opname];
 		bitstream->insts[inst_cnt].FuInst.Src1key = nodeinfo->m_Src1OccupyState[c];
 		bitstream->insts[inst_cnt].FuInst.Src2key = nodeinfo->m_Src2OccupyState[c];
-		bitstream->insts[inst_cnt].FuInst.FudelayII = (c-first_cycle)/m_II;
+		int delayII = (c-first_cycle)/m_II;
+		bitstream->insts[inst_cnt].FuInst.FudelayII =delayII; 
+		if(delayII > maxdelayII){
+			maxdelayII = delayII;
+			finishInstcnt = inst_cnt;
+		}else if ((delayII = maxdelayII) && inst_cnt > finishInstcnt){
+				finishInstcnt = inst_cnt;
+		}
 	}
 
 
@@ -82,7 +93,14 @@ void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
 			int inst_cnt = (c-first_cycle)% m_II;
 			if(bitstream->insts[inst_cnt].LinkInsts[direction].Dkey != LINK_NOT_OCCUPY || (linkinfo->m_occupied_state[c]==LINK_NOT_OCCUPY || linkinfo->m_occupied_state[c]==LINK_OCCUPY_EMPTY)) continue;
 			bitstream->insts[inst_cnt].LinkInsts[direction].Dkey = linkinfo->m_occupied_state[c];
-			bitstream->insts[inst_cnt].LinkInsts[direction].DelayII = (c-first_cycle)/m_II;
+			int delayII = (c-first_cycle)/m_II;
+			bitstream->insts[inst_cnt].LinkInsts[direction].DelayII = delayII;
+			if(delayII > maxdelayII){
+				maxdelayII = delayII;
+				finishInstcnt = inst_cnt;
+			}else if ((delayII = maxdelayII) && inst_cnt > finishInstcnt){
+				finishInstcnt = inst_cnt;
+			}
 			/*
 			outs()<<"d:"<<direction<<"\n";
 			outs()<<"c:"<<c<<"\n";
@@ -91,6 +109,9 @@ void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
 			*/
 		}
 	}
+	bitstream->ctrlregs.FinishInstcnt=finishInstcnt;
+	bitstream->ctrlregs.FinishIIcnt=maxdelayII-1;
+
 }
 
 void BitStream::generateConst(CGRANode* node,BitStreamInfoPE* bitstream){
