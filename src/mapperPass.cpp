@@ -17,7 +17,6 @@ using namespace std;
 using json = nlohmann::json;
 
 bool getConstraint(map<int,int>* constraintmap);
-CONFIG_INFO config_info;
 
 namespace {
 
@@ -37,46 +36,18 @@ namespace {
 		 * Mapper enter at this function
 		 */
     bool runOnFunction(Function &t_F) override {
-			config_info.rows = 4;
-			config_info.cols = 4;
-			config_info.mrrgsize = 200;
-			config_info. instmemsize= 8 ;
-			config_info. constmemsize= 8 ;
-	config_info. shiftconstmemsize= 8;
-	config_info. datamemsize = 400;
-	config_info. loop0start= 1;
-	config_info. loop0inc= 1;
-	config_info. loop0end= 19;
-	config_info. loop1start=0 ;
-	config_info. loop1inc= 1;
-	config_info. loop1end= 1;
-	config_info. loop2start= 0;
-	config_info. loop2inc= 1;
-	config_info. loop2end= 1;
-
-      // Read the target function from JSON file.
-			string target_function;
-			int loopargnum = 0;
-      ifstream i("./param.json");
-      if (!i.good()) {
-        outs()<< "=============================================================\n";
-				OUTS("Please provide a valid <param.json> in the current directory.",ANSI_FG_RED);
-				OUTS("A set of default parameters is leveraged.",ANSI_FG_RED);
-        outs()<<"=============================================================\n";
-      } else {
-        json param;
-        i >> param; 
-				target_function = param["kernel"];
-				loopargnum = param["loopargnum"];
-      }
+			
+			if(!getconfig(&config_info)){
+				return false;
+			}
 
       // Check existance. if the function is our target function
-      if (target_function!=t_F.getName().str()) {
+      if (config_info.kernel!=t_F.getName().str()) {
         return false;
       }
 
 
-      DFG* dfg = new DFG(t_F,loopargnum);
+      DFG* dfg = new DFG(t_F,config_info.loopargnum);
 			if (dfg->DFG_error){
 				return false;
 			}

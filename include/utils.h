@@ -25,8 +25,8 @@
 
 #include <llvm/Support/raw_ostream.h>
 
-#define ERRS(coutfmt,color) errs()<<color<<coutfmt<<ANSI_NONE<<"\n"
-#define OUTS(coutfmt,color) outs()<<color<<coutfmt<<ANSI_NONE<<"\n"
+#define ERRS(coutfmt,color) llvm::errs()<<color<<coutfmt<<ANSI_NONE<<"\n"
+#define OUTS(coutfmt,color) llvm::outs()<<color<<coutfmt<<ANSI_NONE<<"\n"
 
 // ----------- IFDEF -----------
 #define myconcat(x, y) x ## y

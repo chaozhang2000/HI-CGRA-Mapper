@@ -1,7 +1,10 @@
 #ifndef config_H
 #define config_H
 
+#include <string>
 struct CONFIG_INFO {
+	std::string kernel;
+	int loopargnum;
 	int rows;
 	int cols;
 	int instmemsize;
@@ -18,6 +21,8 @@ struct CONFIG_INFO {
 	int loop2start;
 	int loop2inc;
 	int loop2end;
+	int maxsimcycle;
 };
 extern CONFIG_INFO config_info;
+bool getconfig(CONFIG_INFO* config_info);
 #endif
