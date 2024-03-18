@@ -37,7 +37,7 @@ namespace {
 		 */
     bool runOnFunction(Function &t_F) override {
 			
-			if(!getconfig(&config_info)){
+			if(!config_info.getconfig()){
 				return false;
 			}
 

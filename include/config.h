@@ -2,7 +2,8 @@
 #define config_H
 
 #include <string>
-struct CONFIG_INFO {
+class CONFIG_INFO {
+	public:
 	std::string kernel;
 	int loopargnum;
 	int rows;
@@ -22,7 +23,7 @@ struct CONFIG_INFO {
 	int loop2inc;
 	int loop2end;
 	int maxsimcycle;
+	bool getconfig();
 };
 extern CONFIG_INFO config_info;
-bool getconfig(CONFIG_INFO* config_info);
 #endif
