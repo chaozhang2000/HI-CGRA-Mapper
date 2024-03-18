@@ -71,7 +71,7 @@ class Mapper{
 
 		/** do heuristicMap
 		 */
-		void heuristicMap();
+		bool heuristicMap();
 
 		/** return m_II
 		 */

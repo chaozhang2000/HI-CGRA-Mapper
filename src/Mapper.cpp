@@ -28,7 +28,7 @@ int Mapper::getResMII(){
  * 3. traverse all InstNode in DFG, try to map them one by one, the InstNode is divided into two classes, InstNode whose all preNode(StartNode) is not mapped and InsoNode whose all preNode is mapped.For each kind of InstNode,try to find a path in MRRG to map them,if found,then schedule the path.
  *
  */
-void Mapper::heuristicMap(){
+bool Mapper::heuristicMap(){
 	IFDEF(CONFIG_MAP_DEBUG,OUTS("\nMAP DEBUG",ANSI_FG_BLUE)); 
 
 	bool mapsuccess = false;
@@ -101,8 +101,12 @@ void Mapper::heuristicMap(){
 	if(mapsuccess){
 		IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping successful with II = "<<m_II<<"\n");	
 		IFDEF(CONFIG_MAP_DEBUG,printMapResult());
+		return true;
 	}
-	else IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping failed with II = "<<m_II<<"\n");	
+	else {
+					IFDEF(CONFIG_MAP_DEBUG,outs()<<"Mapping failed with II = "<<m_II<<"\n");	
+					return false;
+	}
 }
 
 /**this funciton set src1occupystate and src2occupystate for a Start DFGNode.

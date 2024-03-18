@@ -3,29 +3,48 @@
 #include <iostream>
 #include <fstream>
 #include "llvm/IR/Constants.h"
+#include "config.h"
 
 using namespace std;
 
 #define ALLOPTS(f)\
 				f(mul) f(add) f(getelementptr) f(load) f(store) f(shl)
 #define FUKEYMAPINIT(k) m_Fukeymap->insert(make_pair(#k,++i));
+
 BitStream::BitStream(MRRG* t_mrrg,CGRA* t_cgra,int t_II){
 	m_cgra = t_cgra;
 	m_mrrg = t_mrrg;
 	m_II = t_II;
 	m_bitStreamInfo = new BitStreamInfo;
+	memset(&(m_bitStreamInfo->CheckInfo),0,sizeof(BitStreamCheck));
+	m_bitStreamInfo->BitstreaminfoOfPE = new BitStreamInfoPE[t_cgra->getrows() * t_cgra->getcolumns()];
+	for( int i = 0; i<t_cgra->getrows();i++){
+		for(int j = 0; j<t_cgra->getcolumns();j++){
+			int rows = t_cgra->getrows();
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].insts = new CGRAInstruction[config_info.instmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].insts,0,sizeof(CGRAInstruction) *config_info.instmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const1= new int[config_info.constmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const1,0,sizeof(int) *config_info.constmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const2= new int[config_info.constmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const2,0,sizeof(int) *config_info.constmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst1= new int[config_info.shiftconstmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst1,0,sizeof(int) *config_info.shiftconstmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst2= new int[config_info.shiftconstmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst2,0,sizeof(int) *config_info.shiftconstmemsize);
+			memset(&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs),0,sizeof(CtrlRegs));
+	}
+	}
 	m_Fukeymap = new map<string,int>;
 	int i = 0;
 	ALLOPTS(FUKEYMAPINIT);
 }
 void BitStream::generateBitStream(){
-	memset(m_bitStreamInfo,0,sizeof(BitStreamInfo));
 	IFDEF(CONFIG_BITSTREAM_DEBUG,OUTS("\nBITSTREAM DEBUG",ANSI_FG_BLUE)); 
 	IFDEF(CONFIG_BITSTREAM_DEBUG,OUTS("==================================",ANSI_FG_CYAN));
 	IFDEF(CONFIG_BITSTREAM_DEBUG,OUTS("start bitstream generate",ANSI_FG_CYAN)); 
-	m_bitStreamInfo->CheckInfo.InstMemSize = CONFIG_CGRA_INSTMEM_SIZE;
-	m_bitStreamInfo->CheckInfo.ConstMemSize = CONFIG_CGRA_CONSTMEM_SIZE;
-	m_bitStreamInfo->CheckInfo.ShiftConstMemSize = CONFIG_CGRA_SHIFTCONSTMEM_SIZE;
+	m_bitStreamInfo->CheckInfo.InstMemSize = config_info.instmemsize;
+	m_bitStreamInfo->CheckInfo.ConstMemSize = config_info.constmemsize;
+	m_bitStreamInfo->CheckInfo.ShiftConstMemSize = config_info.shiftconstmemsize;
 
 
 	int rows = m_cgra->getrows();
@@ -50,13 +69,21 @@ void BitStream::generateBitStream(){
 		OUTS("Can't open or create bitstream.bin",ANSI_FG_RED); 
 		return;
 	}
-	file.write((char*)m_bitStreamInfo,sizeof(BitStreamInfo));
+	file.write((char*)m_bitStreamInfo,sizeof(BitStreamCheck));
+	for(int i = 0;i<m_cgra->getrows() * m_cgra->getcolumns();i++){
+					file.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].insts),sizeof(CGRAInstruction)*config_info.instmemsize);
+					file.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].const1),sizeof(int)*config_info.constmemsize);
+					file.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].const2),sizeof(int)*config_info.constmemsize);
+					file.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].shiftconst1),sizeof(int)*config_info.shiftconstmemsize);
+					file.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].shiftconst2),sizeof(int)*config_info.shiftconstmemsize);
+					file.write((char*)(&(m_bitStreamInfo->BitstreaminfoOfPE[i].ctrlregs)),sizeof(CtrlRegs));
+	}
 	file.close();
 	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"successfully write bitstream to bitstream.bin\n"); 
 }
 
 void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
-	if(m_II > CONFIG_CGRA_INSTMEM_SIZE)llvm_unreachable("Inst Mem size < m_II, need bigger InstMem");
+	if(m_II > config_info.instmemsize)llvm_unreachable("Inst Mem size < m_II, need bigger InstMem");
 	bitstream->ctrlregs.Instnum = m_II;
 	int first_cycle = m_mrrg->getFirstcycleofNode(node);
 	int last_cycle = m_mrrg->getLastcycleofNode(node);
@@ -129,7 +156,7 @@ void BitStream::generateConst(CGRANode* node,BitStreamInfoPE* bitstream){
 				DFGNodeConst* constnode1 = nodeinfo->m_OccupiedByNode[c]->getPredConstNode(0);
 				DFGNodeParam* paramnode1 = nodeinfo->m_OccupiedByNode[c]->getPredParamNode(0);
 				if(constnode1 == NULL && paramnode1 == NULL)llvm_unreachable("constnode1 should not be NULL, mapper have bug");
-				if(cnt1 > CONFIG_CGRA_CONSTMEM_SIZE-1)llvm_unreachable("Need bigger ConstMem");
+				if(cnt1 > config_info.constmemsize-1)llvm_unreachable("Need bigger ConstMem");
 				bitstream->const1[cnt1] = constnode1 != NULL ? getconstvalue(constnode1):0;
 				/*
 				outs()<<"src1isconst"<<c<<"\n";
@@ -144,7 +171,7 @@ void BitStream::generateConst(CGRANode* node,BitStreamInfoPE* bitstream){
 				DFGNodeConst* constnode2 = nodeinfo->m_OccupiedByNode[c]->getPredConstNode(1);
 				DFGNodeParam* paramnode2 = nodeinfo->m_OccupiedByNode[c]->getPredParamNode(1);
 				if(constnode2 == NULL && paramnode2 == NULL)llvm_unreachable("constnode2 should not be NULL, mapper have bug");
-				if(cnt2 > CONFIG_CGRA_CONSTMEM_SIZE-1)llvm_unreachable("Need bigger ConstMem");
+				if(cnt2 > config_info.constmemsize-1)llvm_unreachable("Need bigger ConstMem");
 				bitstream->const2[cnt2] = constnode2 !=NULL ? getconstvalue(constnode2):0;
 				/*
 				outs()<<"src2isconst"<<c<<"\n";
@@ -185,7 +212,7 @@ void BitStream::generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream){
 				int delayII = (c-first_cycle)/m_II;
 				int shiftconst1 = calculateShiftconst(paramnode1,delayII);
 				if(shiftconst1 != 0){
-					if(cnt1 > CONFIG_CGRA_SHIFTCONSTMEM_SIZE-1)llvm_unreachable("Need bigger ShiftconstMem");
+					if(cnt1 > config_info.shiftconstmemsize-1)llvm_unreachable("Need bigger ShiftconstMem");
 					bitstream->shiftconst1[cnt1] = shiftconst1;
 					bitstream->insts[i].FuInst.Shiftconst1 = true;
 					/*
@@ -205,7 +232,7 @@ void BitStream::generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream){
 				int delayII = (c-first_cycle)/m_II;
 				int shiftconst2 = calculateShiftconst(paramnode2,delayII);
 				if(shiftconst2 != 0){
-					if(cnt2 > CONFIG_CGRA_SHIFTCONSTMEM_SIZE-1)llvm_unreachable("Need bigger ShiftconstMem");
+					if(cnt2 > config_info.shiftconstmemsize-1)llvm_unreachable("Need bigger ShiftconstMem");
 					bitstream->shiftconst2[cnt2] = shiftconst2;
 					bitstream->insts[i].FuInst.Shiftconst2 = true;
 					/*
@@ -224,18 +251,18 @@ void BitStream::generateShiftConst(CGRANode* node,BitStreamInfoPE* bitstream){
 	}
 	bitstream->ctrlregs.Shiftconstnum1=cnt1;
 	bitstream->ctrlregs.Shiftconstnum2=cnt2;
-	bitstream->ctrlregs.I_init=CONFIG_LOOP_I_START;
-	bitstream->ctrlregs.J_init=CONFIG_LOOP_J_START;
-	bitstream->ctrlregs.K_init=CONFIG_LOOP_K_START;
-	bitstream->ctrlregs.I_inc=CONFIG_LOOP_I_INC;
-	bitstream->ctrlregs.J_inc=CONFIG_LOOP_J_INC;
-	bitstream->ctrlregs.K_inc=CONFIG_LOOP_K_INC;
-	bitstream->ctrlregs.I_thread=CONFIG_LOOP_I_END;
-	bitstream->ctrlregs.J_thread=CONFIG_LOOP_J_END;
-	bitstream->ctrlregs.K_thread=CONFIG_LOOP_K_END;
-	bitstream->ctrlregs.I=CONFIG_LOOP_I_START;
-	bitstream->ctrlregs.J=CONFIG_LOOP_J_START;
-	bitstream->ctrlregs.K=CONFIG_LOOP_K_START;
+	bitstream->ctrlregs.I_init=config_info.loop2start;
+	bitstream->ctrlregs.J_init=config_info.loop1start;
+	bitstream->ctrlregs.K_init=config_info.loop0start;
+	bitstream->ctrlregs.I_inc=config_info.loop2inc;
+	bitstream->ctrlregs.J_inc=config_info.loop1inc;
+	bitstream->ctrlregs.K_inc=config_info.loop0inc;
+	bitstream->ctrlregs.I_thread=config_info.loop2end;
+	bitstream->ctrlregs.J_thread=config_info.loop1end;
+	bitstream->ctrlregs.K_thread=config_info.loop0end;
+	bitstream->ctrlregs.I=config_info.loop2start;
+	bitstream->ctrlregs.J=config_info.loop1start;
+	bitstream->ctrlregs.K=config_info.loop0start;
 }
 /*TODO: not finish yet!! return the value of shiftconst, in mm example shiftconst is always 0*/
 int BitStream::calculateShiftconst(DFGNodeParam* paramnode,int delayII){
@@ -246,9 +273,9 @@ int BitStream::calculateShiftconst(DFGNodeParam* paramnode,int delayII){
 /*TODO: this need to improve,now is only a easy implement*/
 int BitStream::getIInum(){
 	int IInum = 0;
-	for(int i = CONFIG_LOOP_I_START; CONFIG_LOOP_I_INC > 0 ? i < CONFIG_LOOP_I_END:i>CONFIG_LOOP_I_END;i = i + CONFIG_LOOP_I_INC){
-		for(int j = CONFIG_LOOP_J_START; CONFIG_LOOP_J_INC > 0 ? j < CONFIG_LOOP_J_END:j>CONFIG_LOOP_J_END;j = j + CONFIG_LOOP_J_INC){
-			for(int k = CONFIG_LOOP_K_START; CONFIG_LOOP_K_INC > 0 ? k < CONFIG_LOOP_K_END:k>CONFIG_LOOP_K_END;k = k + CONFIG_LOOP_K_INC){
+	for(int i = config_info.loop2start; config_info.loop2inc > 0 ? i < config_info.loop2end:i>config_info.loop2end;i = i + config_info.loop2inc){
+		for(int j = config_info.loop1start; config_info.loop1inc > 0 ? j < config_info.loop1end:j>config_info.loop1end;j = j + config_info.loop1inc){
+			for(int k = config_info.loop0start; config_info.loop0inc > 0 ? k < config_info.loop0end:k>config_info.loop0end;k = k + config_info.loop0inc){
 				IInum ++;
 			}
 		}
@@ -261,5 +288,18 @@ void BitStream::printBitStream(){
 	outs()<<"Map II="<<m_II<<"\n"; 
 }
 BitStream::~BitStream(){
+	for( int i = 0; i<m_cgra->getrows();i++){
+		for(int j = 0; j<m_cgra->getcolumns();j++){
+			int rows = m_cgra->getrows();
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].insts; 
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const1;
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const2;
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst1;
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst2;
+	}
+	}
+	delete [] m_bitStreamInfo->BitstreaminfoOfPE;
 	delete m_bitStreamInfo;
+	delete m_Fukeymap;
+
 }

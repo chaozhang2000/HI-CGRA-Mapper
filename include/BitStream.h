@@ -51,11 +51,11 @@ struct CtrlRegs {
 };
 
 struct BitStreamInfoPE{
-	CGRAInstruction insts[CONFIG_CGRA_INSTMEM_SIZE];
-	int const1[CONFIG_CGRA_CONSTMEM_SIZE];
-	int const2[CONFIG_CGRA_CONSTMEM_SIZE];
-	int shiftconst1[CONFIG_CGRA_SHIFTCONSTMEM_SIZE];
-	int shiftconst2[CONFIG_CGRA_SHIFTCONSTMEM_SIZE];
+	CGRAInstruction *insts;
+	int *const1;
+	int *const2;
+	int *shiftconst1;
+	int *shiftconst2;
 	CtrlRegs ctrlregs;
 };
 struct BitStreamCheck{
@@ -65,7 +65,7 @@ struct BitStreamCheck{
 };
 struct BitStreamInfo{
 	BitStreamCheck CheckInfo;
-	BitStreamInfoPE BitstreaminfoOfPE[16];
+	BitStreamInfoPE *BitstreaminfoOfPE;
 };
 class BitStream{
 	private:

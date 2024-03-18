@@ -10,13 +10,14 @@
 #include "MRRG.h"
 #include "Mapper.h"
 #include "BitStream.h"
+#include "config.h"
 
 using namespace llvm;
 using namespace std;
 using json = nlohmann::json;
 
 bool getConstraint(map<int,int>* constraintmap);
-void addDefaultKernels(map<string, list<int>*>*);
+CONFIG_INFO config_info;
 
 namespace {
 
@@ -36,6 +37,22 @@ namespace {
 		 * Mapper enter at this function
 		 */
     bool runOnFunction(Function &t_F) override {
+			config_info.rows = 4;
+			config_info.cols = 4;
+			config_info.mrrgsize = 200;
+			config_info. instmemsize= 8 ;
+			config_info. constmemsize= 8 ;
+	config_info. shiftconstmemsize= 8;
+	config_info. datamemsize = 400;
+	config_info. loop0start= 1;
+	config_info. loop0inc= 1;
+	config_info. loop0end= 19;
+	config_info. loop1start=0 ;
+	config_info. loop1inc= 1;
+	config_info. loop1end= 1;
+	config_info. loop2start= 0;
+	config_info. loop2inc= 1;
+	config_info. loop2end= 1;
 
       // Read the target function from JSON file.
 			string target_function;
@@ -64,7 +81,7 @@ namespace {
 				return false;
 			}
 
-			CGRA* cgra = new CGRA(4,4);
+			CGRA* cgra = new CGRA(config_info.rows,config_info.cols);
 
 #ifdef CONFIG_MAP_CONSTRAINT
 			map<int,int>* constraintmap = new map<int,int>;//TODO: free this space
@@ -98,15 +115,17 @@ namespace {
 #endif
 
 #ifdef CONFIG_MAP_EN
-			MRRG* mrrg = new MRRG(cgra,200);
+			MRRG* mrrg = new MRRG(cgra,config_info.mrrgsize);
 
 			Mapper* mapper = new Mapper(dfg,cgra,mrrg);
 
-			mapper->heuristicMap();
+			bool mapsuccess = mapper->heuristicMap();
 #ifdef CONFIG_MAP_BITSTREAM
+			if (mapsuccess){
 			BitStream* bitstream = new BitStream(mrrg,cgra,mapper->getII());
 			bitstream->generateBitStream();
 			delete bitstream;
+			}
 #endif
 			delete mapper;
 			delete mrrg;
