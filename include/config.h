@@ -2,9 +2,11 @@
 #define config_H
 
 #include <string>
+#include <map>
+using namespace std;
 class CONFIG_INFO {
 	public:
-	std::string kernel;
+	string kernel;
 	int loopargnum;
 	int rows;
 	int cols;
@@ -23,6 +25,8 @@ class CONFIG_INFO {
 	int loop2inc;
 	int loop2end;
 	int maxsimcycle;
+	map<string,int> execLatency;	
+	map<string,int> pipeline;
 	bool getconfig();
 };
 extern CONFIG_INFO config_info;

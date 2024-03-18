@@ -2,6 +2,7 @@
 #include "json.h"
 #include "common.h"
 #include <fstream>
+#include <iostream>
 using namespace std;
 using json = nlohmann::json;
 
@@ -40,6 +41,12 @@ bool CONFIG_INFO::getconfig()
 	loop2inc = configs["loop2inc"];
 	loop2end = configs["loop2end"];
 	maxsimcycle = configs["maxsimcycle"];
+	for(auto& opt : configs["optlatency"].items()){
+		execLatency[opt.key()] = opt.value();
+	}
+	for(auto& opt : configs["optpipeline"].items()){
+		pipeline[opt.key()] = opt.value();
+	}
 				return true;
 			}
 }
