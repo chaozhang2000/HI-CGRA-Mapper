@@ -39,6 +39,14 @@ class DFGNodeInst:public DFGNode{
 		 */
 		int m_constraintTo;
 
+		/**the opt delay.
+		 */
+		int m_latency;
+
+		/**if opt support pipeline
+		 */
+		bool m_pipeline;
+
 	public:
 		static const string color;
 		/**The constructor function of class DFGNodeInst
@@ -93,5 +101,8 @@ class DFGNodeInst:public DFGNode{
 		 */
 		DFGNodeConst* getPredConstNode(int srcID);
 		DFGNodeParam* getPredParamNode(int srcID);
+
+		int getlatency();
+		bool ispipeline();
 };
 #endif

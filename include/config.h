@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <list>
 using namespace std;
 class CONFIG_INFO {
 	public:
@@ -26,7 +27,7 @@ class CONFIG_INFO {
 	int loop2end;
 	int maxsimcycle;
 	map<string,int> execLatency;	
-	map<string,int> pipeline;
+	list<string> pipeline;
 	bool getconfig();
 };
 extern CONFIG_INFO config_info;

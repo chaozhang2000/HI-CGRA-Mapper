@@ -1,6 +1,8 @@
 #include "DFGNodeInst.h"
 #include "common.h"
 #include "DFGEdge.h"
+#include "config.h"
+#include <iostream>
 
 const string DFGNodeInst::color = "black";
 DFGNodeInst::DFGNodeInst(int t_id,Instruction*t_inst,string t_name):DFGNode(t_id,t_name){
@@ -13,6 +15,17 @@ DFGNodeInst::DFGNodeInst(int t_id,Instruction*t_inst,string t_name):DFGNode(t_id
 	m_constrainted = false;
 	m_constraintTo = 0;
 	m_isMemOpts = (m_opcodeName == "load" || m_opcodeName == "store")? true:false;
+	m_pipeline = false;
+	m_latency = 0;
+
+	if(config_info.execLatency.find(m_opcodeName) !=config_info.execLatency.end()){
+		m_latency = config_info.execLatency[m_opcodeName];
+	}
+	list<string>::iterator it;
+	it = find(config_info.pipeline.begin(),config_info.pipeline.end(),m_opcodeName);
+	if(it != config_info.pipeline.end()){
+		m_pipeline = true;
+	}
 }
 
 Instruction* DFGNodeInst::getInst() {
@@ -99,4 +112,10 @@ DFGNodeParam* DFGNodeInst::getPredParamNode(int srcID){
 			}
 		}
 		return NULL;
+}
+int DFGNodeInst::getlatency(){
+		return m_latency;
+}
+bool DFGNodeInst::ispipeline(){
+		return m_pipeline;
 }

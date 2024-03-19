@@ -44,8 +44,9 @@ bool CONFIG_INFO::getconfig()
 	for(auto& opt : configs["optlatency"].items()){
 		execLatency[opt.key()] = opt.value();
 	}
-	for(auto& opt : configs["optpipeline"].items()){
-		pipeline[opt.key()] = opt.value();
+	json pipeOpt = configs["optpipeline"];
+	for(unsigned long i = 0; i< pipeOpt.size();++i){
+		pipeline.push_back(pipeOpt[i]);
 	}
 				return true;
 			}
