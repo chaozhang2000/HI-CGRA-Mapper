@@ -100,8 +100,7 @@ CGRA::CGRA(int t_rows,int t_columns){
   for (int i=0; i<m_rows; ++i) {
     for (int j=0; j<m_columns; ++j) {
 			outs()<< "Node("<<nodes[i][j]->getx()<<","<<nodes[i][j]->gety()<<"); ";
-			outs()<< "ID:"<<nodes[i][j]->getID()<<"; ";
-			outs()<< "hasDataMem:"<<nodes[i][j]->hasDataMem()<<"\n";
+			outs()<< "ID:"<<nodes[i][j]->getID()<<"\n";
     }
   }
 	for (int i=0; i<m_LinkCount;i++){

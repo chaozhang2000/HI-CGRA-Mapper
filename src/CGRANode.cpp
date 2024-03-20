@@ -10,13 +10,10 @@
 CGRANode::CGRANode(int t_id, int t_x, int t_y) {
   m_id = t_id;
   m_disabled = false;
-	m_hasDataMem = true;
   m_x = t_x;
   m_y = t_y;
 	COMMON_OPTS(M_SUPPORTOPTS_INSERT);
-	if(m_hasDataMem){
-		LOAD_STORE_OPTS(M_SUPPORTOPTS_INSERT);
-	}
+	LOAD_STORE_OPTS(M_SUPPORTOPTS_INSERT);
 	m_neighbors = NULL;
 }
 
@@ -28,9 +25,6 @@ int CGRANode::getx(){
 }
 int CGRANode::gety(){
 	return m_y;
-}
-bool CGRANode::hasDataMem(){
-	return m_hasDataMem;
 }
 bool CGRANode::isdisable(){
 	return m_disabled;

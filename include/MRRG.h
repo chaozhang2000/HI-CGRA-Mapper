@@ -106,6 +106,7 @@ class MRRG {
 		 */
 		map<CGRANode*,NodeInfo*> m_NodeInfos;
 		map<CGRALink*,LinkInfo*> m_LinkInfos;
+		map<int,bool*> m_DatamemInfos;
 		
 		/** Used to save unsubmit Data
 		 */

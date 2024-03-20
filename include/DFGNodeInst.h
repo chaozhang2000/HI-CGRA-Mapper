@@ -34,10 +34,16 @@ class DFGNodeInst:public DFGNode{
 		bool m_isMemOpts;
 		/**var to save if the InstNode is constrainted to a CGRANode by the mapconstraint.json.
 		 */
-		bool m_constrainted;
+		bool m_constraintedNode;
 		/**the CGRANode ID which this DFGNodeInst is constrained to be mapped to.
 		 */
-		int m_constraintTo;
+		int m_constraintNodeID;
+		/**var to save if the InstNode is constrainted to a Mem by the mapconstraint.json.
+		 */
+		bool m_constraintMem;
+		/**the Datamem ID which this DFGNodeInst is constrained to .
+		 */
+		int  m_constraintMemID;
 
 		/**the opt delay.
 		 */
@@ -95,6 +101,10 @@ class DFGNodeInst:public DFGNode{
 		/** set constraint,set m_constraintTo the value of CGRANodeID,and set m_constrainted true
 		 */
 		void setConstraint(int CGRANodeID);
+
+		bool hasMemConstraint();
+		int constraintToMem();
+		void setConstraintMem(int MemID);
 
 		/**return a pre ConstNode of this InstNode; if not found return NULL;
 		 * @param: srcID, the srcID of the ConstNode.

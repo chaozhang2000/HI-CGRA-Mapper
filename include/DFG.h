@@ -86,6 +86,6 @@ class DFG {
 		/**get the InstNodes
 		 * return the &m_InstNodes
 		 */
-		void setConstraints(map<int,int>* constraintmap,int maxCGRANodeID);
+		void setConstraints(map<int,int>* constraintmap,map<int,int>* constraintmemmap,int maxCGRANodeID);
 };
 #endif

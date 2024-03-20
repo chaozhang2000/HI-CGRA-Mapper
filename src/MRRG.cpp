@@ -1,4 +1,5 @@
 #include "MRRG.h"
+#include "config.h"
 
 #define DIRECTION_MAP(f)\
 				f(N) f(S) f(W) f(E)
@@ -11,7 +12,8 @@
 /**what is in this function:
  * 1. Apply space and init data for LinkInfos 
  * 2. Apply space and init data for NodeInfos 
- * 3. init some maps
+ * 3. Apply space adn init data for DatamemInfos
+ * 4. init some maps
  */
 MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 	m_cgra = t_cgra;
@@ -46,7 +48,14 @@ MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 			}
     }
   }
-	//3. Init the map of CGRALink direction to CGRALink occupied state.
+	//3. Apply space adn init data for DatamemInfos
+	for(int id = 0; id< config_info.datamemnum;++id){
+	 m_DatamemInfos[id] = new bool[m_cycles];
+		for(int c=0;c<m_cycles;c++){
+			m_DatamemInfos[id][c] = false;
+		}
+	}
+	//4. Init the map of CGRALink direction to CGRALink occupied state.
 	DIRECTION_MAP(LINKOCCUPY);
 	DIRECTION_MAP(SRC_DIRECTION_OCCUPY);
 	LOOP_MAP(SRC_LOOP_OCCUPY);
@@ -74,6 +83,10 @@ MRRG::~MRRG(){
     	delete m_NodeInfos[m_cgra->nodes[i][j]];
     }
   }
+	// delete DatamemInfos
+	for(int i = 0; i< config_info.datamemnum; i++){
+		delete [] m_DatamemInfos[i];
+	}
   //3. delete m_unsubmitlink and m_unsubmitnode
 	clearUnsubmit();
 }
@@ -99,6 +112,11 @@ void MRRG::MRRGclear(){
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_lastcycle = 0;
     }
   }
+	for(int id = 0; id< config_info.datamemnum;++id){
+		for(int c=0;c<m_cycles;c++){
+			m_DatamemInfos[id][c] = false;
+		}
+	}
 	clearUnsubmit();
 }
 
@@ -168,8 +186,9 @@ bool MRRG::canOccupyNodeInMRRG(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t
 	int latency = t_dfgnode->getlatency();
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
 		for(int d= 0;d<t_duration and c+d+latency < m_cycles;d++){
-			if(m_NodeInfos[t_cgraNode]->m_fuinoccupied[c+d] == true || m_NodeInfos[t_cgraNode]->m_fuoutoccupied[c+d] == true)
-						return false;
+			if(m_NodeInfos[t_cgraNode]->m_fuinoccupied[c+d] == true || m_NodeInfos[t_cgraNode]->m_fuoutoccupied[c+d+latency] == true)return false;
+			if(t_dfgnode->isMemOpts() and t_dfgnode->hasMemConstraint() and m_DatamemInfos[t_dfgnode->constraintToMem()][c+d] == true)
+				return false;
 		}
 	}
 	return true;
@@ -231,6 +250,9 @@ void MRRG::submitschedule(){
 			DFGNodeInst* dfgnode = unsubmitnode->dfgNode;
 			m_NodeInfos[node]->m_OccupiedByNode[cycle] = dfgnode;
 			m_NodeInfos[node]->m_fuinoccupied[cycle] = true;
+			if(dfgnode != NULL and dfgnode->isMemOpts() and dfgnode->hasMemConstraint()){
+				m_DatamemInfos[dfgnode->constraintToMem()][cycle] = true;
+			}
 			m_NodeInfos[node]->m_Src1OccupyState[cycle] = unsubmitnode->Src1OccupyState;
 			m_NodeInfos[node]->m_Src2OccupyState[cycle] = unsubmitnode->Src2OccupyState;
 			if(unsubmitnode->add_Mappednum){

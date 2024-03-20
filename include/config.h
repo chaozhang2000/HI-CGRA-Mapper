@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <vector>
 using namespace std;
 class CONFIG_INFO {
 	public:
@@ -28,6 +29,8 @@ class CONFIG_INFO {
 	int maxsimcycle;
 	map<string,int> execLatency;	
 	list<string> pipeline;	
+	int datamemnum;
+	map<int,vector<int>> datamemaccess;
 	bool getconfig();
 };
 extern CONFIG_INFO config_info;

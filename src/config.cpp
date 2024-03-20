@@ -48,6 +48,12 @@ bool CONFIG_INFO::getconfig()
 	for(unsigned long i = 0; i< pipeOpt.size();++i){
 		pipeline.push_back(pipeOpt[i]);
 	}
+	datamemnum = configs["datamemnum"];
+	for(auto &item: configs["datamemaccess"].items()){
+		int key = std::stoi(item.key());
+		vector<int> values = item.value().get<vector<int>>();
+		datamemaccess[key] = values;
+	}
 				return true;
 			}
 }

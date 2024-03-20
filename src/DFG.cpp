@@ -3,6 +3,7 @@
 #include <fstream>
 #include "common.h"
 #include <limits>
+#include "config.h"
 
 using namespace std;
 /**
@@ -554,13 +555,14 @@ list<DFGNodeInst*>* DFG::getInstNodes(){
 	return &m_InstNodes;
 }
 
-void DFG::setConstraints(map<int,int>* constraintmap,int maxCGRANodeID){
+void DFG::setConstraints(map<int,int>* constraintmap,map<int,int>* constraintmemmap,int maxCGRANodeID){
 	IFDEF(CONFIG_DFG_DEBUG,
 	OUTS("==================================",ANSI_FG_CYAN); 
   OUTS("[setConstraints:]",ANSI_FG_CYAN););
 	map<int,int>::iterator it;
 	int DFGNodeID = 0;
 	int CGRANodeID = 0;
+	int MemID = 0;
 	bool find = false;
 	for(it = constraintmap->begin();it!=constraintmap->end();++it){
 		find = false;
@@ -579,9 +581,29 @@ void DFG::setConstraints(map<int,int>* constraintmap,int maxCGRANodeID){
 			IFDEF(CONFIG_DFG_DEBUG,
   		OUTS("constraint "<<"DFGNode"<<DFGNodeID<<" ->  CGRANode"<<CGRANodeID<<" exist in mapconstraint.json but DFGNode not found or CGRANode not found,this constraint is ignored",ANSI_FG_RED););
 	}
+	for(it = constraintmemmap->begin();it!=constraintmemmap->end();++it){
+		find = false;
+		DFGNodeID = it->first;
+		MemID = it->second;
+		for(DFGNodeInst* node: m_InstNodes){
+			if(node -> getID() == DFGNodeID){
+				if(MemID >= config_info.datamemnum) continue;
+				node -> setConstraintMem(MemID);
+				find = true;
+				IFDEF(CONFIG_DFG_DEBUG,outs()<< "DFGNode"<<DFGNodeID<<" ->  DataMem"<<MemID<<"\n");
+				break;
+			}
+		}
+		if(find == false)
+			IFDEF(CONFIG_DFG_DEBUG,
+  		OUTS("constraint "<<"DFGNode"<<DFGNodeID<<" ->  Mem"<<MemID<<" exist in mapconstraint.json but DFGNode not found or Mem not found,this constraint is ignored",ANSI_FG_RED););
+	}
 	for(DFGNodeInst* node: m_InstNodes){
-		if(node -> isMemOpts() and !(node->hasConstraint())){
+		if(node -> isMemOpts() and !(node->hasConstraint()) and !(node->hasMemConstraint())){
   		DFG_ERR("DFGNode" << node->getID()<<" have no Constraints");
+		}
+		if(node-> isMemOpts() and config_info.datamemaccess[node->constraintToMem()].size()==0){
+  		DFG_ERR("No CGRANode can access DataMem" <<node->constraintToMem());
 		}
 	}
 }

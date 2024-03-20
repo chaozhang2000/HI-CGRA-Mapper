@@ -16,7 +16,7 @@ using namespace llvm;
 using namespace std;
 using json = nlohmann::json;
 
-bool getConstraint(map<int,int>* constraintmap);
+bool getConstraint(map<int,int>* constraintmap,map<int,int>* constraintmemmap);
 
 namespace {
 
@@ -55,16 +55,18 @@ namespace {
 			CGRA* cgra = new CGRA(config_info.rows,config_info.cols);
 
 #ifdef CONFIG_MAP_CONSTRAINT
-			map<int,int>* constraintmap = new map<int,int>;//TODO: free this space
+			map<int,int>* constraintmap = new map<int,int>;
+			map<int,int>* constraintmemmap = new map<int,int>;
 
 			bool hasConstraintFile = false; 
 
       /*get constraint form the file*/
-			hasConstraintFile = getConstraint(constraintmap);
+			hasConstraintFile = getConstraint(constraintmap,constraintmemmap);
 
       /*set constraint in dfg*/
-			dfg->setConstraints(constraintmap,cgra->getNodeCount()-1);
+			dfg->setConstraints(constraintmap,constraintmemmap,cgra->getNodeCount()-1);
 			delete constraintmap;
+			delete constraintmemmap;
 #endif
 
       /*Generate the DFG dot file.*/
@@ -112,7 +114,7 @@ namespace {
 char mapperPass::ID = 0;
 static RegisterPass<mapperPass> X("mapperPass", "DFG Pass Analyse", false, false);
 
-bool getConstraint(map<int,int>* constraintmap){
+bool getConstraint(map<int,int>* constraintmap,map<int,int>* constraintmemmap){
 			bool hasmapconstrantJson= false;
       ifstream mapconstraint("./mapconstraint.json");
 			if(mapconstraint.good())hasmapconstrantJson= true;
@@ -127,6 +129,12 @@ bool getConstraint(map<int,int>* constraintmap){
 				for(unsigned long i =0;i<maps.size();i++){
 					map = maps[i];
 					(*constraintmap)[map[0]] = map[1];
+				}
+				json memmaps = constraint["DFGNodeIDMemID"];
+				json memmap;
+				for(unsigned long i =0;i<memmaps.size();i++){
+					memmap = memmaps[i];
+					(*constraintmemmap)[memmap[0]] = memmap[1];
 				}
 				return true;
 			}

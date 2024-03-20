@@ -12,8 +12,10 @@ DFGNodeInst::DFGNodeInst(int t_id,Instruction*t_inst,string t_name):DFGNode(t_id
 	m_predInstNodes = NULL;
 	m_level = 0;
 	m_haveSetLevel = false;
-	m_constrainted = false;
-	m_constraintTo = 0;
+	m_constraintedNode = false;
+	m_constraintNodeID = 0;
+	m_constraintMem = false;
+	m_constraintMemID = 0;
 	m_isMemOpts = (m_opcodeName == "load" || m_opcodeName == "store")? true:false;
 	m_pipeline = false;
 	m_latency = 0;
@@ -84,14 +86,25 @@ bool DFGNodeInst::isMemOpts(){
 	return m_isMemOpts;
 }
 bool DFGNodeInst::hasConstraint(){
-	return m_constrainted;
+	return m_constraintedNode;
 }
 int DFGNodeInst::constraintTo(){
-	return m_constraintTo;
+	return m_constraintNodeID;
 }
 void DFGNodeInst::setConstraint(int CGRANodeID){
-	m_constrainted = true;
-	m_constraintTo = CGRANodeID;
+	m_constraintedNode = true;
+	m_constraintNodeID = CGRANodeID;
+}
+
+bool DFGNodeInst::hasMemConstraint(){
+	return m_constraintMem;
+}
+int DFGNodeInst::constraintToMem(){
+	return m_constraintMemID;
+}
+void DFGNodeInst::setConstraintMem(int MemID){
+m_constraintMem= true;
+	m_constraintMemID = MemID;
 }
 
 DFGNodeConst* DFGNodeInst::getPredConstNode(int srcID){

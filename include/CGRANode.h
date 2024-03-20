@@ -16,9 +16,6 @@ class CGRANode {
 		/**true main disable the CGRANode
 		 */
     bool m_disabled;
-		/**if this PE has a DataMem if it has DataMem, it can load or store.
-		 */
-		bool m_hasDataMem;
 		/**the list to record input CGRALinks of this CGRANode
 		 */
     list <CGRALink*> m_inLinks;
@@ -63,9 +60,6 @@ class CGRANode {
 		/**return m_y
 		 */
 		int gety();
-		/**return m_hasDataMem
-		 */
-		bool hasDataMem();
 		/**return m_disabled
 		 */
 		bool isdisable();

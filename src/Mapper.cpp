@@ -3,6 +3,7 @@
 #include <queue>
 #include <limits>
 #include "common.h"
+#include "config.h"
 
 using namespace std;
 Mapper::Mapper(DFG* t_dfg,CGRA* t_cgra,MRRG* t_mrrg){
@@ -206,6 +207,8 @@ PATH* Mapper::getMapPathforStartInstNode(DFGNodeInst* t_InstNode){
 			CGRANode* cgraNode = m_cgra->nodes[r][c];
 			if(cgraNode->canSupport(t_InstNode->getOpcodeName()) and cgraNode->isdisable()==false){
 				if(t_InstNode->hasConstraint() and (cgraNode->getID() != t_InstNode->constraintTo()))continue;
+				vector<int> *canaccessmemcgranodes = &(config_info.datamemaccess[t_InstNode->constraintToMem()]);
+				if(t_InstNode->isMemOpts() and t_InstNode->hasMemConstraint() and find(canaccessmemcgranodes->begin(),canaccessmemcgranodes->end(),cgraNode->getID()) == canaccessmemcgranodes->end())continue;//(cgraNode->getID() != t_InstNode->constraintTo()))continue;
 				int cycle = 0;
 				PATH*path = NULL;
 				while(cycle <= m_mrrg->getMRRGcycles()/2){
@@ -254,7 +257,8 @@ PATHS* Mapper::getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode){
 			CGRANode* cgraNode = m_cgra->nodes[r][c];
 			if(cgraNode->canSupport(t_InstNode->getOpcodeName())and cgraNode->isdisable()==false ){
 				if(t_InstNode->hasConstraint() and (cgraNode->getID() != t_InstNode->constraintTo()))continue;
-
+				vector<int> *canaccessmemcgranodes = &(config_info.datamemaccess[t_InstNode->constraintToMem()]);
+				if(t_InstNode->isMemOpts() and t_InstNode->hasMemConstraint() and find(canaccessmemcgranodes->begin(),canaccessmemcgranodes->end(),cgraNode->getID()) == canaccessmemcgranodes->end())continue;//(cgraNode->getID() != t_InstNode->constraintTo()))continue;
 				list<DFGNodeInst*>* preNodes = t_InstNode->getPredInstNodes();
  				//2.if the t_InstNode have only one preNode, just find the path from it's preNode to this Node. only save the shortest path.
 				if(preNodes->size() == 1){
