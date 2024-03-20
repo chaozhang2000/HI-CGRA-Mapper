@@ -36,7 +36,8 @@ struct NodeInfo{
 /** this var is used to record the CGRANode is occupyed or not at certain cycle.
  * if the m_occupied == true and m_OccupyedByNode ==NULL,mean this Node is occupied by empty Inst(data delay in fu reg)
  */
-		bool * m_occupied;
+		bool * m_fuinoccupied;
+		bool * m_fuoutoccupied;
 
 /**record if the Src1 or Src2 input mux is occpuied at a certain cycle,and it's occupied state
 * for example
@@ -154,7 +155,7 @@ class MRRG {
 		/**judge if the CGRANode in MRRG have space to map
 		 * if the m_Mappednum >= II, mean the CGRANode in MRRG don't have space to map
 		 */
-		bool haveSpaceforNode(CGRANode*t_cgraNode,int t_II);
+		bool haveSpaceforNode(CGRANode*t_cgraNode,DFGNodeInst* t_dfgnode,int start_cycle,int t_II);
 
 		/**judge if the t_cgraLink can be occupy in MRRG,during cycle t_cycle to t_cycle+t_duration,when II = t_II
 		 */
@@ -164,7 +165,7 @@ class MRRG {
 		bool canOccupyLinkInUnSubmit(CGRALink* t_cgraLink,int t_cycle,int t_duration,int t_II);
 		/**judge if the cgraNode can be occupy in MRRG,during cycle t_cycle to t_cycle+t_duration,when II = t_II
 		 */
-		bool canOccupyNodeInMRRG(CGRANode* t_cgraNode,int t_cycle,int t_duration,int t_II);
+		bool canOccupyNodeInMRRG(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t_cycle,int t_duration,int t_II);
 
 		/**schedule the CGRANode,new unSubmitNodeInfo* and push_back to m_unSubmitNodeInfos
 		 * call this function one time will cause one add_Mappednum in unSubmitNodeInfo be set true

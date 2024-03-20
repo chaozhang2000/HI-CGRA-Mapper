@@ -33,14 +33,16 @@ MRRG::MRRG(CGRA*t_cgra, int t_cycles){
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_OccupiedByNode = new DFGNodeInst*[m_cycles];
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_Src1OccupyState = new int[m_cycles];
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_Src2OccupyState = new int[m_cycles];
-			m_NodeInfos[m_cgra->nodes[i][j]]->m_occupied = new bool[m_cycles];
+			m_NodeInfos[m_cgra->nodes[i][j]]->m_fuinoccupied = new bool[m_cycles];
+			m_NodeInfos[m_cgra->nodes[i][j]]->m_fuoutoccupied = new bool[m_cycles];
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_Mappednum = 0;
 			m_NodeInfos[m_cgra->nodes[i][j]]->m_lastcycle = 0;
 			for(int c=0;c<m_cycles;c++){
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_OccupiedByNode[c] = NULL;
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Src1OccupyState[c] = SRC_NOT_OCCUPY;
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Src2OccupyState[c] = SRC_NOT_OCCUPY;
-				m_NodeInfos[m_cgra->nodes[i][j]]->m_occupied[c] = false;
+				m_NodeInfos[m_cgra->nodes[i][j]]->m_fuinoccupied[c] = false;
+				m_NodeInfos[m_cgra->nodes[i][j]]->m_fuoutoccupied[c] = false;
 			}
     }
   }
@@ -67,7 +69,8 @@ MRRG::~MRRG(){
 			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_OccupiedByNode;
 			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_Src1OccupyState;
 			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_Src2OccupyState;
-			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_occupied;
+			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_fuinoccupied;
+			delete[] m_NodeInfos[m_cgra->nodes[i][j]]->m_fuoutoccupied;
     	delete m_NodeInfos[m_cgra->nodes[i][j]];
     }
   }
@@ -89,7 +92,8 @@ void MRRG::MRRGclear(){
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_OccupiedByNode[c] = NULL;
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Src1OccupyState[c] = SRC_NOT_OCCUPY;
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Src2OccupyState[c] = SRC_NOT_OCCUPY;
-				m_NodeInfos[m_cgra->nodes[i][j]]->m_occupied[c] = false;
+				m_NodeInfos[m_cgra->nodes[i][j]]->m_fuinoccupied[c] = false;
+				m_NodeInfos[m_cgra->nodes[i][j]]->m_fuoutoccupied[c] = false;
 			}
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_Mappednum = 0;
 				m_NodeInfos[m_cgra->nodes[i][j]]->m_lastcycle = 0;
@@ -153,14 +157,18 @@ bool MRRG::canOccupyLinkInUnSubmit(CGRALink* t_cgraLink,int t_cycle,int t_durati
 	return true;
 }
 
-bool MRRG::haveSpaceforNode(CGRANode*t_cgraNode,int t_II){
-	return m_NodeInfos[t_cgraNode]->m_Mappednum < t_II;
+bool MRRG::haveSpaceforNode(CGRANode*t_cgraNode,DFGNodeInst* t_dfgnode,int start_cycle,int t_II){
+	for(int i = start_cycle;i<m_cycles/2;i++){
+		if(canOccupyNodeInMRRG(t_cgraNode,t_dfgnode,i,1,t_II))return true;
+	}
+	return false;
 }
 
-bool MRRG::canOccupyNodeInMRRG(CGRANode* t_cgraNode,int t_cycle,int t_duration,int t_II){
+bool MRRG::canOccupyNodeInMRRG(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t_cycle,int t_duration,int t_II){
+	int latency = t_dfgnode->getlatency();
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
-		for(int d= 0;d<t_duration and c+d < m_cycles;d++){
-			if(m_NodeInfos[t_cgraNode]->m_occupied[c+d] == true)
+		for(int d= 0;d<t_duration and c+d+latency < m_cycles;d++){
+			if(m_NodeInfos[t_cgraNode]->m_fuinoccupied[c+d] == true || m_NodeInfos[t_cgraNode]->m_fuoutoccupied[c+d] == true)
 						return false;
 		}
 	}
@@ -213,20 +221,24 @@ void MRRG::submitschedule(){
 	for(unSubmitNodeInfo* unsubmitnode: m_unSubmitNodeInfos){
 		CGRANode* node = unsubmitnode->node;
 		int cycle = unsubmitnode->cycle;
-		if(m_NodeInfos[node]->m_occupied[cycle]==true){
+		if(m_NodeInfos[node]->m_fuinoccupied[cycle]==true){
 			llvm_unreachable("The CGRANode in path can't be schedule,this should not happen, the Mapper has some bugs");
 		}
 		else if(unsubmitnode->temp != false){
 			llvm_unreachable("the unsubmitnode->temp == true,this should not happen,the Mapper has some bugs");
 		}
 		else{
-			m_NodeInfos[node]->m_OccupiedByNode[cycle] = unsubmitnode->dfgNode;
-			m_NodeInfos[node]->m_occupied[cycle] = true;
+			DFGNodeInst* dfgnode = unsubmitnode->dfgNode;
+			m_NodeInfos[node]->m_OccupiedByNode[cycle] = dfgnode;
+			m_NodeInfos[node]->m_fuinoccupied[cycle] = true;
 			m_NodeInfos[node]->m_Src1OccupyState[cycle] = unsubmitnode->Src1OccupyState;
 			m_NodeInfos[node]->m_Src2OccupyState[cycle] = unsubmitnode->Src2OccupyState;
 			if(unsubmitnode->add_Mappednum){
 							m_NodeInfos[node]->m_Mappednum++;
 							m_NodeInfos[node]->m_lastcycle = cycle > m_NodeInfos[node]->m_lastcycle ? cycle:m_NodeInfos[node]->m_lastcycle;
+			}
+			if(dfgnode != NULL){//occupied by InstNode
+				if(cycle + dfgnode->getlatency() < m_cycles) m_NodeInfos[node]->m_fuoutoccupied[cycle + dfgnode->getlatency()] = true;
 			}
 		}
 	}
@@ -273,7 +285,7 @@ int MRRG::getFirstcycleofNode(CGRANode* node){
 	int startcyclelink = 0;
 	NodeInfo* nodeinfo = m_NodeInfos[node];
 	for(int i=0;i<m_cycles;i++){
-		if(nodeinfo->m_occupied[i] && nodeinfo->m_OccupiedByNode[i]!=NULL){
+		if(nodeinfo->m_fuinoccupied[i] && nodeinfo->m_OccupiedByNode[i]!=NULL){
 			startcyclenode = i;
 			break;
 		}

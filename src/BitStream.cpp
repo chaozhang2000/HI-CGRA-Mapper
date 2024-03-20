@@ -138,6 +138,8 @@ void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
 	}
 	bitstream->ctrlregs.FinishInstcnt=finishInstcnt;
 	bitstream->ctrlregs.FinishIIcnt=maxdelayII-1;
+	bitstream->ctrlregs.Startcyclenum = first_cycle;
+	bitstream->ctrlregs.Startcyclecnt = 0;
 
 }
 

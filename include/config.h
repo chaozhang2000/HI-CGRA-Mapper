@@ -27,7 +27,7 @@ class CONFIG_INFO {
 	int loop2end;
 	int maxsimcycle;
 	map<string,int> execLatency;	
-	list<string> pipeline;
+	list<string> pipeline;	
 	bool getconfig();
 };
 extern CONFIG_INFO config_info;

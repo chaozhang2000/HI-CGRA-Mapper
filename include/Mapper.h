@@ -41,8 +41,8 @@ class Mapper{
 		void getSrcStateOfStartNode(DFGNodeInst* InstNode,int* src1state,int *src2state);
 		void getSrcStateOfNode(PATHS* paths,DFGNodeInst* InstNode,int* src1state,int *src2state);
 		PATHS* getMapPathsFromPreToInstNode(DFGNodeInst* t_InstNode);
-		PATH* getPathToCGRANode(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle,bool isroute);
-		bool canDelayInCGRANodeatCycle(CGRANode* cgraNode,int cycle,map<pair<CGRANode*,int>,pair<CGRANode*,int>>* MRRGpath);
+		PATH* getPathToCGRANode(DFGNodeInst *dst_dfgnode,CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle,bool isroute);
+		bool canDelayInCGRANodeatCycle(DFGNodeInst* dst_dfgnode,CGRANode* cgraNode,int cycle,map<pair<CGRANode*,int>,pair<CGRANode*,int>>* MRRGpath);
 
 		PATH* getmaincostPath(PATHS* paths);
 
@@ -53,9 +53,9 @@ class Mapper{
 		CGRANode* getPathEndCGRANode(PATH* path);
 		void dumpPath(PATH* path);
 #ifdef CONFIG_MAP_A
-		PATH* AxGetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
+		PATH* AxGetPath(DFGNodeInst *dst_dfgnode,CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
 		int calculateCost(pair<CGRANode*,int>* currentnode,pair<CGRANode*,int>* nextnode,pair<CGRANode*,int>*dstnode);
-		PATH* BFSgetPath(CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
+		PATH* BFSgetPath(DFGNodeInst* dst_dfgnode, CGRANode* src_CGRANode, CGRANode* dst_CGRANode, int src_cycle,int dst_cycle);
 #endif
 		void printMapResult();
 
