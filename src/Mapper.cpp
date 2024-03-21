@@ -564,7 +564,7 @@ PATH* Mapper::BFSgetPath(DFGNodeInst* dst_dfgnode, CGRANode* src_CGRANode, CGRAN
 		CGRANode* currentCGRANode = currentMRRGNode.first;
 		int currentcycle = currentMRRGNode.second;
 
-		if(currentCGRANode == dst_CGRANode and m_mrrg->canOccupyNodeInMRRG(currentCGRANode,dst_dfgnode,currentcycle,1,m_II)){
+		if(currentCGRANode == dst_CGRANode and m_mrrg->canOccupyNodeInMRRG(currentCGRANode,dst_dfgnode,currentcycle,1,m_II) and currentMRRGNode != startMRRGnode){//if a pipleline opt, currentMRRGNode == startMRRGnode but and occupy in MRRG may happen
 			success = true;			
 			MRRGpathend = make_pair(currentCGRANode,currentcycle);
 			break;
@@ -742,7 +742,7 @@ void Mapper::mapInfoInit(){
  */
 void Mapper::setmapInfo(CGRANode*t_dstCGRANode,DFGNodeInst* t_InstNode,int t_cycle){
 	m_mapInfo[t_InstNode]->cgraNode = t_dstCGRANode;
-	m_mapInfo[t_InstNode]->cycle = t_cycle;
+	m_mapInfo[t_InstNode]->cycle = t_cycle + t_InstNode->getlatency();
 	m_mapInfo[t_InstNode]->mapped = true;
 	
 }

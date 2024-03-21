@@ -185,7 +185,7 @@ bool MRRG::haveSpaceforNode(CGRANode*t_cgraNode,DFGNodeInst* t_dfgnode,int start
 bool MRRG::canOccupyNodeInMRRG(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t_cycle,int t_duration,int t_II){
 	int latency = t_dfgnode->getlatency();
 	for(int c=t_cycle;c<m_cycles;c=c+t_II){
-		for(int d= 0;d<t_duration and c+d+latency < m_cycles;d++){
+		for(int d= 0;d<t_duration and c+d < m_cycles;d++){
 			if(m_NodeInfos[t_cgraNode]->m_fuinoccupied[c+d] == true || m_NodeInfos[t_cgraNode]->m_fuoutoccupied[c+d+latency] == true)return false;
 			if(t_dfgnode->isMemOpts() and t_dfgnode->hasMemConstraint() and m_DatamemInfos[t_dfgnode->constraintToMem()][c+d] == true)
 				return false;

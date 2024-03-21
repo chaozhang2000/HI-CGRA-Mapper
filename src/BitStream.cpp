@@ -20,18 +20,18 @@ BitStream::BitStream(MRRG* t_mrrg,CGRA* t_cgra,int t_II){
 	m_bitStreamInfo->BitstreaminfoOfPE = new BitStreamInfoPE[t_cgra->getrows() * t_cgra->getcolumns()];
 	for( int i = 0; i<t_cgra->getrows();i++){
 		for(int j = 0; j<t_cgra->getcolumns();j++){
-			int rows = t_cgra->getrows();
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].insts = new CGRAInstruction[config_info.instmemsize];
-			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].insts,0,sizeof(CGRAInstruction) *config_info.instmemsize);
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const1= new int[config_info.constmemsize];
-			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const1,0,sizeof(int) *config_info.constmemsize);
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const2= new int[config_info.constmemsize];
-			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const2,0,sizeof(int) *config_info.constmemsize);
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst1= new int[config_info.shiftconstmemsize];
-			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst1,0,sizeof(int) *config_info.shiftconstmemsize);
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst2= new int[config_info.shiftconstmemsize];
-			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst2,0,sizeof(int) *config_info.shiftconstmemsize);
-			memset(&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs),0,sizeof(CtrlRegs));
+			int cols = t_cgra->getcolumns();
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].insts = new CGRAInstruction[config_info.instmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].insts,0,sizeof(CGRAInstruction) *config_info.instmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].const1= new int[config_info.constmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].const1,0,sizeof(int) *config_info.constmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].const2= new int[config_info.constmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].const2,0,sizeof(int) *config_info.constmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].shiftconst1= new int[config_info.shiftconstmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].shiftconst1,0,sizeof(int) *config_info.shiftconstmemsize);
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].shiftconst2= new int[config_info.shiftconstmemsize];
+			memset(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].shiftconst2,0,sizeof(int) *config_info.shiftconstmemsize);
+			memset(&(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].ctrlregs),0,sizeof(CtrlRegs));
 	}
 	}
 	m_Fukeymap = new map<string,int>;
@@ -51,12 +51,12 @@ void BitStream::generateBitStream(){
 	int cols = m_cgra->getcolumns();
   for (int i=0; i<rows; i++) {
     for (int j=0; j<cols; j++) {
-			generateInstofNode(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
-			generateConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
-			generateShiftConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j]));
+			generateInstofNode(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j]));
+			generateConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j]));
+			generateShiftConst(m_cgra->nodes[i][j],&(m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j]));
 			int IInum = getIInum();
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs.IInum=IInum;
-			m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].ctrlregs.FinishIIcnt+=IInum;
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].ctrlregs.IInum=IInum;
+			m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].ctrlregs.FinishIIcnt+=IInum;
 		}
 	}
 
@@ -292,12 +292,12 @@ void BitStream::printBitStream(){
 BitStream::~BitStream(){
 	for( int i = 0; i<m_cgra->getrows();i++){
 		for(int j = 0; j<m_cgra->getcolumns();j++){
-			int rows = m_cgra->getrows();
-			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].insts; 
-			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const1;
-			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].const2;
-			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst1;
-			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*rows+j].shiftconst2;
+			int cols = m_cgra->getcolumns();
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].insts; 
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].const1;
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].const2;
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].shiftconst1;
+			delete [] m_bitStreamInfo->BitstreaminfoOfPE[i*cols+j].shiftconst2;
 	}
 	}
 	delete [] m_bitStreamInfo->BitstreaminfoOfPE;
