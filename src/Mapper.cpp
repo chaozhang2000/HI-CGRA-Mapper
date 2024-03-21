@@ -483,8 +483,11 @@ PATH* Mapper::AxGetPath(DFGNodeInst *dst_dfgnode,CGRANode* src_CGRANode, CGRANod
 		if(searchNode == dstNode){
 			if(m_mrrg->canOccupyNodeInMRRG(currentCGRANode,dst_dfgnode,currentcycle,1,m_II) == false)
 				return NULL;
+			if(m_mrrg->canOccupyNodeInUnSubmit(currentCGRANode,dst_dfgnode,currentcycle,1,m_II) == false)
+				return NULL;
 			break;
 		}
+		m_mrrg->clearTempUnsubmit();
 		/*calculate the cost from searchNode to nextMRRGNode,if can access,rm them from the searchPool*/
 		/*because the path's frond occupied link in MRRG,so we need to consider the front end of path.*/
 		PATH* frontpath = new PATH;
@@ -515,7 +518,6 @@ PATH* Mapper::AxGetPath(DFGNodeInst *dst_dfgnode,CGRANode* src_CGRANode, CGRANod
 			cost[nextMRRGNode] = calculateCost(&searchNode,&nextMRRGNode,&dstNode);
 		}
 
-		m_mrrg->clearTempUnsubmit();
 	}
 
 	/*reach here find the path,return the path*/
@@ -564,11 +566,13 @@ PATH* Mapper::BFSgetPath(DFGNodeInst* dst_dfgnode, CGRANode* src_CGRANode, CGRAN
 		CGRANode* currentCGRANode = currentMRRGNode.first;
 		int currentcycle = currentMRRGNode.second;
 
-		if(currentCGRANode == dst_CGRANode and m_mrrg->canOccupyNodeInMRRG(currentCGRANode,dst_dfgnode,currentcycle,1,m_II) and currentMRRGNode != startMRRGnode){//if a pipleline opt, currentMRRGNode == startMRRGnode but and occupy in MRRG may happen
+		if(currentCGRANode == dst_CGRANode and m_mrrg->canOccupyNodeInMRRG(currentCGRANode,dst_dfgnode,currentcycle,1,m_II) and m_mrrg->canOccupyNodeInUnSubmit(currentCGRANode,dst_dfgnode,currentcycle,1,m_II) and currentMRRGNode != startMRRGnode){//if a pipleline opt, currentMRRGNode == startMRRGnode but and occupy in MRRG may happen
 			success = true;			
 			MRRGpathend = make_pair(currentCGRANode,currentcycle);
+			m_mrrg->clearTempUnsubmit();
 			break;
 		}
+		m_mrrg->clearTempUnsubmit();
 		if(currentcycle >= dst_cycle) continue;
 
 		//because the path's frond occupied link in MRRG,so we need to consider the front end of path.
@@ -600,7 +604,6 @@ PATH* Mapper::BFSgetPath(DFGNodeInst* dst_dfgnode, CGRANode* src_CGRANode, CGRAN
 			q.push(nextMRRGNode);
 		}
 
-		m_mrrg->clearTempUnsubmit();
 	}
 	//return the path
 	if(!success){
@@ -644,7 +647,7 @@ bool Mapper::canDelayInCGRANodeatCycle(DFGNodeInst* dst_dfgnode,CGRANode* cgraNo
 	}
 	CGRANode* preCGRANode = preMRRGNode.first;
 	if(preCGRANode == NULL){//the cgraNode is the start of path
-		if(m_mrrg->canOccupyNodeInMRRG(cgraNode,dst_dfgnode,cycle,1,m_II)){
+		if(m_mrrg->canOccupyNodeInMRRG(cgraNode,dst_dfgnode,cycle,1,m_II) and m_mrrg->canOccupyNodeInUnSubmit(cgraNode,dst_dfgnode,cycle,1,m_II)){
 			return true;
 		}
 	}else{//the cgraNode is not the start of path

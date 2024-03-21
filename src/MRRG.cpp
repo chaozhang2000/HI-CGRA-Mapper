@@ -194,6 +194,20 @@ bool MRRG::canOccupyNodeInMRRG(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t
 	return true;
 }
 
+/*unsubmit node occupy only happens in scheduleLinkInPath so the t_dfgnode can only be NULL, so don't need to consider the complex situation.*/
+bool MRRG::canOccupyNodeInUnSubmit(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t_cycle,int t_duration,int t_II){
+	for(unSubmitNodeInfo* unsubmitnode: m_unSubmitNodeInfos){
+		if(unsubmitnode->node == t_cgraNode){
+			for(int d = 0; d<t_duration; d++){
+				if(unsubmitnode->cycle >= t_cycle+d and (unsubmitnode->cycle - t_cycle-d)%t_II == 0){
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 /**TODO: m_Src1OccupyState and m_Src2OccupyState not be handled yet
  */
 void MRRG::scheduleNode(CGRANode* t_cgraNode,DFGNodeInst* t_dfgNode,int t_cycle,int duration,int t_II,int t_Src1OccupyState,int t_Src2OccupyState,bool temp){
@@ -241,6 +255,8 @@ void MRRG::submitschedule(){
 		CGRANode* node = unsubmitnode->node;
 		int cycle = unsubmitnode->cycle;
 		if(m_NodeInfos[node]->m_fuinoccupied[cycle]==true){
+			//outs()<<"Node"<<node->getID()<<" have been occupyed by DFGNode"<<m_NodeInfos[node]->m_OccupiedByNode[cycle]->getID()<<" at cycle "<<cycle<<"\n";
+			outs()<<"Node"<<node->getID()<<" have been occupyed by DFGNode"<<" at cycle "<<cycle<<"\n";
 			llvm_unreachable("The CGRANode in path can't be schedule,this should not happen, the Mapper has some bugs");
 		}
 		else if(unsubmitnode->temp != false){

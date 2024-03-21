@@ -167,6 +167,7 @@ class MRRG {
 		/**judge if the cgraNode can be occupy in MRRG,during cycle t_cycle to t_cycle+t_duration,when II = t_II
 		 */
 		bool canOccupyNodeInMRRG(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t_cycle,int t_duration,int t_II);
+		bool canOccupyNodeInUnSubmit(CGRANode* t_cgraNode,DFGNodeInst* t_dfgnode,int t_cycle,int t_duration,int t_II);
 
 		/**schedule the CGRANode,new unSubmitNodeInfo* and push_back to m_unSubmitNodeInfos
 		 * call this function one time will cause one add_Mappednum in unSubmitNodeInfo be set true
