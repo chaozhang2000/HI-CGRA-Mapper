@@ -587,7 +587,7 @@ void DFG::setConstraints(map<int,int>* constraintmap,map<int,int>* constraintmem
 		MemID = it->second;
 		for(DFGNodeInst* node: m_InstNodes){
 			if(node -> getID() == DFGNodeID){
-				if(MemID >= config_info.datamemnum) continue;
+				if(MemID >= config_info.datamemnum or node->isMemOpts()==false) continue;
 				node -> setConstraintMem(MemID);
 				find = true;
 				IFDEF(CONFIG_DFG_DEBUG,outs()<< "DFGNode"<<DFGNodeID<<" ->  DataMem"<<MemID<<"\n");
@@ -596,11 +596,11 @@ void DFG::setConstraints(map<int,int>* constraintmap,map<int,int>* constraintmem
 		}
 		if(find == false)
 			IFDEF(CONFIG_DFG_DEBUG,
-  		OUTS("constraint "<<"DFGNode"<<DFGNodeID<<" ->  Mem"<<MemID<<" exist in mapconstraint.json but DFGNode not found or Mem not found,this constraint is ignored",ANSI_FG_RED););
+  		OUTS("constraint "<<"DFGNode"<<DFGNodeID<<" ->  Mem"<<MemID<<" exist in mapconstraint.json but DFGNode not found or Mem not found or DFGNode is not mem access opt,this constraint is ignored",ANSI_FG_RED););
 	}
 	for(DFGNodeInst* node: m_InstNodes){
-		if(node -> isMemOpts() and !(node->hasConstraint()) and !(node->hasMemConstraint())){
-  		DFG_ERR("DFGNode" << node->getID()<<" have no Constraints");
+		if(node -> isMemOpts() and !(node->hasMemConstraint())){
+  		DFG_ERR("DFGNode is mem access opt but" << node->getID()<<" have no Constraints in DFGNodeIDMemID");
 		}
 		if(node-> isMemOpts() and config_info.datamemaccess[node->constraintToMem()].size()==0){
   		DFG_ERR("No CGRANode can access DataMem" <<node->constraintToMem());
