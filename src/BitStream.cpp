@@ -79,7 +79,45 @@ void BitStream::generateBitStream(){
 					file.write((char*)(&(m_bitStreamInfo->BitstreaminfoOfPE[i].ctrlregs)),sizeof(CtrlRegs));
 	}
 	file.close();
-	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"successfully write bitstream to bitstream.bin\n"); 
+	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"successfully write bitstream to bitstream.bin\n");
+
+	/*generate bit stream for hardware*/
+	string filename1 = "./bitstream_harware.bin";
+	ofstream file1(filename1,ios::binary|ios::trunc);
+	if(!file1){
+		OUTS("Can't open or create bitstream_hardware.bin",ANSI_FG_RED); 
+		return;
+	}
+	for(int i = 0;i<m_cgra->getrows() * m_cgra->getcolumns();i++){
+					int inst[6] = {};
+					int linkdkey[4] = {};
+					for(int j = 0; j<4;j++){
+						linkdkey[j] = m_bitStreamInfo->BitstreaminfoOfPE[i].insts->LinkInsts[j].Dkey >LINK_OCCUPY_EMPTY ? m_bitStreamInfo->BitstreaminfoOfPE[i].insts->LinkInsts[j].Dkey -1 : 0;
+					}
+					inst[0] = 0 +(int)m_bitStreamInfo->BitstreaminfoOfPE[i].insts->FuInst.Shiftconst1
+									+( ((int)m_bitStreamInfo->BitstreaminfoOfPE[i].insts->FuInst.Shiftconst2)<<1)
+									+( m_bitStreamInfo->BitstreaminfoOfPE[i].insts->FuInst.Fukey << 2)
+									+( m_bitStreamInfo->BitstreaminfoOfPE[i].insts->FuInst.Src1key<<10)
+									+( m_bitStreamInfo->BitstreaminfoOfPE[i].insts->FuInst.Src2key<<15)
+									+( linkdkey[0]<<20)
+									+( linkdkey[1]<<23)
+									+( linkdkey[2]<<26)
+									+( linkdkey[3]<<29)
+									;
+					inst[1] = m_bitStreamInfo->BitstreaminfoOfPE[i].insts->FuInst.FudelayII;
+					inst[2] = m_bitStreamInfo->BitstreaminfoOfPE[i].insts->LinkInsts[0].DelayII;
+					inst[3] = m_bitStreamInfo->BitstreaminfoOfPE[i].insts->LinkInsts[1].DelayII;
+					inst[4] = m_bitStreamInfo->BitstreaminfoOfPE[i].insts->LinkInsts[2].DelayII;
+					inst[5] = m_bitStreamInfo->BitstreaminfoOfPE[i].insts->LinkInsts[3].DelayII;
+					file1.write((char*)(inst),sizeof(inst));
+					file1.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].const1),sizeof(int)*config_info.constmemsize);
+					file1.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].const2),sizeof(int)*config_info.constmemsize);
+					file1.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].shiftconst1),sizeof(int)*config_info.shiftconstmemsize);
+					file1.write((char*)(m_bitStreamInfo->BitstreaminfoOfPE[i].shiftconst2),sizeof(int)*config_info.shiftconstmemsize);
+					file1.write((char*)(&(m_bitStreamInfo->BitstreaminfoOfPE[i].ctrlregs)),sizeof(CtrlRegs));
+	}
+	file1.close();
+	IFDEF(CONFIG_BITSTREAM_DEBUG,outs()<<"successfully write bitstream to bitstream_hardware.bin\n");
 }
 
 void BitStream::generateInstofNode(CGRANode* node,BitStreamInfoPE* bitstream){
