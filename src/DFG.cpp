@@ -305,6 +305,10 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 							}
 							InstNode->setLevel(level);
 							havenotSetLevelNodes->erase(InstNode);
+							if(level < 0){
+											OUTS("Mapper bug: set Node "<<InstNode->getID()<<" "<<level<<" kind 1",ANSI_FG_RED);
+											llvm_unreachable(" ");
+							}
 						}
 			continue;
 		//give kind(2) nodes level
@@ -316,6 +320,10 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 							}
 							InstNode->setLevel(level);
 							havenotSetLevelNodes->erase(InstNode);
+							if(level <0){
+											OUTS("Mapper bug: set Node "<<InstNode->getID()<<" "<<level<<" kind 2",ANSI_FG_RED);
+											llvm_unreachable(" ");
+							}
 						}
 			continue;
 		//give kind(3) node level
@@ -324,8 +332,12 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 							for(DFGNodeInst* succNode:*(mostSuccNodeHasLevel->getSuccInstNodes())){
 								if(level > succNode->getLevel()-1 and succNode->haveSetLevel()) level = succNode->getLevel() - 1;
 							}
-							mostPredNodeHasLevel->setLevel(level);
-							havenotSetLevelNodes->erase(mostPredNodeHasLevel);
+							mostSuccNodeHasLevel->setLevel(level);//
+							havenotSetLevelNodes->erase(mostSuccNodeHasLevel);//
+							if(level<0){
+											OUTS("Mapper bug: set Node "<<mostSuccNodeHasLevel->getID()<<" "<<level<<" kind 3",ANSI_FG_RED);//
+											llvm_unreachable(" ");
+							}
 			continue;
 		//give kind(4) node level
 		}else if(mostPredNodeHasLevel !=NULL){
@@ -335,6 +347,10 @@ void DFG::setLevelforOtherNodes(set<DFGNodeInst*>* havenotSetLevelNodes){
 							}
 							mostPredNodeHasLevel->setLevel(level);
 							havenotSetLevelNodes->erase(mostPredNodeHasLevel);
+							if(level<0){
+											OUTS("Mapper bug: set Node "<<mostPredNodeHasLevel->getID()<<" "<<level<<" kind 4",ANSI_FG_RED);
+											llvm_unreachable(" ");
+							}
 			continue;
 		}else{
 						llvm_unreachable("ERROR has DFGNode which do not have INEdge and OutEdge");
