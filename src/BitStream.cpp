@@ -8,7 +8,7 @@
 using namespace std;
 
 #define ALLOPTS(f)\
-				f(mul) f(add) f(getelementptr) f(load) f(store) f(shl)
+				f(mul) f(add) f(getelementptr) f(load) f(store) f(shl) f(or) f(sext) f(and) f(sub) f(ashr)
 #define FUKEYMAPINIT(k) m_Fukeymap->insert(make_pair(#k,++i));
 
 BitStream::BitStream(MRRG* t_mrrg,CGRA* t_cgra,int t_II){
