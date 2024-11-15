@@ -5,7 +5,7 @@
 #include <iostream>
 
 const string DFGNodeInst::color = "black";
-DFGNodeInst::DFGNodeInst(int t_id,Instruction*t_inst,string t_name):DFGNode(t_id,t_name){
+DFGNodeInst::DFGNodeInst(int t_id,Instruction*t_inst,string t_name):DFGNode(t_id,0,t_name){
 	m_inst = t_inst;
 	m_opcodeName = t_inst->getOpcodeName();
 	m_succInstNodes = NULL;
@@ -80,6 +80,9 @@ bool DFGNodeInst::haveSetLevel(){
 DFGNodeInst::~DFGNodeInst(){
 	if(m_succInstNodes!=NULL){
 		delete m_succInstNodes;
+	}
+	if(m_predInstNodes != NULL){
+		delete m_predInstNodes;
 	}
 }
 bool DFGNodeInst::isMemOpts(){

@@ -32,9 +32,12 @@ class DFG {
 		 */
     list<DFGNodeParam*> m_ParamNodes;
 
+		int m_DFGEdgeID;
+
     void construct(Function&,int t_loopargnum);
     void showOpcodeDistribution();
     void connectDFGNodes();
+		void DFG_optimization();
     //DFGEdge* getDFGEdge(DFGNode* t_src, DFGNode* t_dst);
     //bool hasDFGEdge(DFGNode* t_src, DFGNode* t_dst);
 		void reorderInstNodes();

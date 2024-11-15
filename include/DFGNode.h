@@ -11,6 +11,7 @@ class DFGEdge;
 class DFGNode {
   private:
     int m_id;
+		int m_typeid; //0 inst,1 param,2 const
 		string m_name;
 		/**the list to save the pointers of input DFGEdges
 		 */
@@ -21,10 +22,11 @@ class DFGNode {
     list<DFGEdge*> m_outEdges;
 
   public:
-		DFGNode(int t_id,string t_name);
+		DFGNode(int t_id,int type_id,string t_name);
 		virtual ~DFGNode(){};
 
     int getID();
+		int get_typeID();
 		string getName();
 
 		/** add t_dfgEdge to m_inEdges of the DFGNode
@@ -36,6 +38,8 @@ class DFGNode {
 		 */
     void setOutEdge(DFGEdge* t_dfgEdge);
 
+		void clearInEdge();
+		void clearOutEdge();
 		/** get &m_inEdges;
 		 */
 		list<DFGEdge*>* getInEdges();

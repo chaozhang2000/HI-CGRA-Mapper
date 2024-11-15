@@ -80,6 +80,14 @@ config DFG_LONGEST
 config DFG_SRC_ID
 	bool "Show the srcID of DFGEdge in DFG "
 	default y
+menu "DFG optimization"
+config GETELEMENTPTR_OPT
+	bool "Remove useless getelementptr from DFG"
+	default n
+config SEXT_OPT
+	bool "Remove useless sext from DFG"
+	default n
+endmenu
 endmenu
 
 menu "MAP config"

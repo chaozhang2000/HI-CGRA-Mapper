@@ -13,6 +13,7 @@ using namespace std;
  */
 DFG::DFG(Function& t_F,int t_loopargnum) {
 	DFG_error = false;
+	m_DFGEdgeID = 0;
   construct(t_F,t_loopargnum);
 }
 
@@ -62,7 +63,7 @@ void DFG::construct(Function& t_F,int t_loopargnum) {
   m_DFGEdges.clear();
   m_InstNodes.clear();
   int nodeID = 0;
-  int dfgEdgeID = 0;
+  int m_DFGEdgeID= 0;
 	
 
 	//2.make sure this function has only one basic block
@@ -142,21 +143,21 @@ void DFG::construct(Function& t_F,int t_loopargnum) {
 			//if 
     	if (Instruction* tempInst = dyn_cast<Instruction>(*op)) {
       	DFGEdge* dfgEdge;
-        dfgEdge = new DFGEdge(dfgEdgeID++,opcnt,getInstNode(tempInst), nodeInst);
+        dfgEdge = new DFGEdge(m_DFGEdgeID++,opcnt,getInstNode(tempInst), nodeInst);
         m_DFGEdges.push_back(dfgEdge);
 				opcnt ++;
       } 
 			//if the operand is a const
 			else if(ConstantData* const_data = dyn_cast<ConstantData>(*op)){
         DFGEdge* dfgEdge;
-        dfgEdge = new DFGEdge(dfgEdgeID++,opcnt,getConstNode(const_data), nodeInst);
+        dfgEdge = new DFGEdge(m_DFGEdgeID++,opcnt,getConstNode(const_data), nodeInst);
         m_DFGEdges.push_back(dfgEdge);
 				opcnt ++;
       } 
 			//if the operand is a param
 			else if (Argument* arg = dyn_cast<Argument>(op)){
         DFGEdge* dfgEdge;
-        dfgEdge = new DFGEdge(dfgEdgeID++,opcnt,getParamNode(arg), nodeInst);
+        dfgEdge = new DFGEdge(m_DFGEdgeID++,opcnt,getParamNode(arg), nodeInst);
         m_DFGEdges.push_back(dfgEdge);
 				opcnt ++;
 			}
@@ -168,6 +169,7 @@ void DFG::construct(Function& t_F,int t_loopargnum) {
 
 	//5. connectDFGNode and reorder.
   connectDFGNodes();
+	DFG_optimization();
 	reorderInstNodes();
 
 	//6. print summary information if debug is enable
@@ -413,6 +415,133 @@ void DFG::reorderDFS(set<DFGNodeInst*>* t_visited, list<DFGNodeInst*>* t_targetP
 	}
 }
 
+void DFG::DFG_optimization(){
+	/*
+	 * first create edge from all sext's predInstNode to it's succInstNode
+	 * second connect the edge
+	 * third delete sext Node and no used edges
+	 * */
+	IFDEF(CONFIG_SEXT_OPT,
+  list<DFGEdge*> temp_m_DFGEdges = m_DFGEdges; 
+  list<DFGNodeInst*> temp_m_InstNodes = m_InstNodes; 
+	for(DFGNodeInst* sextNode: m_InstNodes){
+		if(sextNode->getOpcodeName()=="sext"){//find sext node
+			int sext_predNode_num = 0;
+			for(DFGEdge* edgetosext:m_DFGEdges){
+				if (edgetosext->getDst() == sextNode){//find edgetosext
+					sext_predNode_num ++;
+					for(DFGEdge* edgefromsext:m_DFGEdges){
+						if(edgefromsext->getSrc() == sextNode){//find edge from sext,then create a newdfgEdge jumped the sextNode,add the new DFGEdge and delete the old edges
+        			DFGEdge* newdfgEdge = new DFGEdge(edgefromsext->getID(),edgefromsext->getsrcID(),edgetosext->getSrc(),edgefromsext->getDst());
+        			temp_m_DFGEdges.push_back(newdfgEdge);
+							temp_m_DFGEdges.remove(edgefromsext);
+							delete edgefromsext;
+						}
+					}
+					temp_m_DFGEdges.remove(edgetosext);
+					delete edgetosext;
+				}
+			if(sext_predNode_num > 1)llvm_unreachable("ERROR sext node have more than 1 preNode.");
+			}
+		temp_m_InstNodes.remove(sextNode);
+		delete sextNode;
+		}
+	}
+	m_DFGEdges = temp_m_DFGEdges;
+	m_InstNodes = temp_m_InstNodes;
+	
+	//clear nodes's InEdges and outEdges
+	for(DFGNodeInst* node : m_InstNodes){
+		node->clearInEdge();
+		node->clearOutEdge();
+	}
+	for(DFGNodeConst* node:m_ConstNodes){
+		node->clearInEdge();
+		node->clearOutEdge();
+	};
+	for(DFGNodeParam* node:m_ParamNodes){
+		node->clearInEdge();
+		node->clearOutEdge();
+	};
+	//re connect
+	connectDFGNodes();
+	);
+
+
+
+
+	IFDEF(CONFIG_GETELEMENTPTR_OPT,
+  list<DFGEdge*> tmep_m_DFGEdges1 = m_DFGEdges; 
+  list<DFGNodeInst*> temp_m_InstNodes1 = m_InstNodes; 
+  list<DFGNodeParam*> temp_m_ParamNodes1 = m_ParamNodes; 
+	for(DFGNodeInst* getelementptrNode: m_InstNodes){
+		if(getelementptrNode->getOpcodeName()=="getelementptr"){//find  node
+			int gete_predNode_num = 0;
+			bool preNode1isInstNode = false;
+			bool preNode2isParamNode = false;
+			DFGEdge* edge_insttogete;
+			DFGEdge* edge_paramtogete;
+			
+			for(DFGEdge* edgetogete:m_DFGEdges){
+				if (edgetogete->getDst() == getelementptrNode){//find edgetogetes
+					gete_predNode_num ++;
+					if(edgetogete->getSrc()->get_typeID() == 0){preNode1isInstNode = true;edge_insttogete = edgetogete;}
+					if(edgetogete->getSrc()->get_typeID() == 1){preNode2isParamNode = true;edge_paramtogete = edgetogete;}
+				}
+			if(gete_predNode_num > 2)llvm_unreachable("ERROR gete node have more than 2 preNode.");
+			}
+
+			if(!(preNode1isInstNode&&preNode2isParamNode)){continue;}//only handle this situation
+			else{
+					for(DFGEdge* edgefromgete:m_DFGEdges){
+						if(edgefromgete->getSrc() == getelementptrNode){//find edge from sext,then create a newdfgEdge jumped the sextNode,add the new DFGEdge and delete the old edges
+        			DFGEdge* newdfgEdge = new DFGEdge(edgefromgete->getID(),edgefromgete->getsrcID(),edge_insttogete->getSrc(),edgefromgete->getDst());
+        			tmep_m_DFGEdges1.push_back(newdfgEdge);
+							tmep_m_DFGEdges1.remove(edgefromgete);
+							delete edgefromgete;
+						}
+					}
+					tmep_m_DFGEdges1.remove(edge_insttogete);
+					delete edge_insttogete;
+					tmep_m_DFGEdges1.remove(edge_paramtogete);
+					delete edge_paramtogete;
+					temp_m_InstNodes1.remove(getelementptrNode);
+					delete getelementptrNode;
+			}
+		}
+	}
+	m_DFGEdges = tmep_m_DFGEdges1;
+	m_InstNodes = temp_m_InstNodes1;
+
+	for(DFGNodeParam* node : m_ParamNodes){
+		bool del = true;
+		for(DFGEdge * edge:m_DFGEdges){
+			if(edge->getSrc()->getID() == node->getID()){
+				del = false;
+				break;
+			}
+		}
+		if(del) temp_m_ParamNodes1.remove(node);
+	}
+	m_ParamNodes = temp_m_ParamNodes1;
+
+	//clear nodes's InEdges and outEdges
+	for(DFGNodeInst* node : m_InstNodes){
+		node->clearInEdge();
+		node->clearOutEdge();
+	}
+	for(DFGNodeConst* node:m_ConstNodes){
+		node->clearInEdge();
+		node->clearOutEdge();
+	};
+	for(DFGNodeParam* node:m_ParamNodes){
+		node->clearInEdge();
+		node->clearOutEdge();
+	};
+	//re connect
+	connectDFGNodes();
+	);
+}
  /** 
 	* this function is used to connect DFGNodes to generate DFG
 	* what is in this function:
