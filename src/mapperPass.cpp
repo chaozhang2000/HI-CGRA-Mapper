@@ -12,12 +12,14 @@
 #include "BitStream.h"
 #include "config.h"
 
+#include "time.h"
+
 using namespace llvm;
 using namespace std;
 using json = nlohmann::json;
 
 bool getConstraint(map<int,int>* constraintmap,map<int,int>* constraintmemmap);
-
+struct timespec start_time, end_time;
 namespace {
 
   struct mapperPass : public FunctionPass {
@@ -47,6 +49,7 @@ namespace {
       }
 
 
+			clock_gettime(CLOCK_MONOTONIC,&start_time);
       DFG* dfg = new DFG(t_F,config_info.loopargnum);
 			if (dfg->DFG_error){
 				return false;
@@ -105,6 +108,12 @@ namespace {
 #endif
 			delete cgra;
 			delete dfg;
+			clock_gettime(CLOCK_MONOTONIC,&end_time);
+
+			long long runtime = (end_time.tv_sec -start_time.tv_sec)* 1000000000LL + (end_time.tv_nsec - start_time.tv_nsec);
+
+      //outs()<<"runtime = "<< end_time.tv_sec -start_time.tv_sec <<"."<<(end_time.tv_nsec - start_time.tv_nsec)/1000000<<"s\n";
+      outs()<<"runtime = "<< runtime / 1000000<<" us\n";
 			return true;
     }
 
